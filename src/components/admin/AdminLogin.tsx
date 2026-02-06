@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export function AdminLogin() {
@@ -12,25 +12,20 @@ export function AdminLogin() {
     setErr(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
-    if (error) setErr(error.message);
-    else window.location.href = "/admin"; // or /admin/posts if you prefer
-  }
+    if (error) return setErr(error.message);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    window.location.reload();
+    // send them to the admin dashboard
+    window.location.href = "/admin";
   }
 
   return (
     <div className="cs">
-      <div className="csBg" aria-hidden="true" />
       <div className="csWrap">
+        <a className="csBack" href="/">← Back</a>
+
         <div className="csCard">
           <div className="csTop">
             <span className="csBadge">Admin</span>
@@ -40,33 +35,31 @@ export function AdminLogin() {
           <h1 className="csTitle">Admin Login</h1>
           <p className="csSub">Sign in with email + password.</p>
 
-          <form className="csActions" onSubmit={signIn}>
+          <form onSubmit={signIn} className="csActions" style={{ gap: 12 }}>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              autoComplete="email"
+              type="email"
+              required
               className="csBtn"
-              style={{ width: "min(380px, 80vw)" }}
+              style={{ flex: 1, minWidth: 260 }}
             />
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               type="password"
-              autoComplete="current-password"
+              required
               className="csBtn"
-              style={{ width: "min(380px, 80vw)" }}
+              style={{ flex: 1, minWidth: 260 }}
             />
             <button className="csBtn" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-            <button type="button" className="csBtn ghost" onClick={signOut}>
-              Sign out
+              {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
-          {err && <p style={{ color: "#ff8a8a", marginTop: 12 }}>{err}</p>}
+          {err && <p style={{ marginTop: 12, color: "#ff8a8a" }}>{err}</p>}
         </div>
       </div>
     </div>
