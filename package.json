@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@astrojs/netlify": "^6.6.4",
     "@supabase/supabase-js": "^2.95.3",
     "dompurify": "^3.3.1",
     "jsdom": "^28.0.0",
@@ -9,6 +8,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@astrojs/netlify": "^6.6.4",
     "@astrojs/react": "^4.4.2",
     "@netlify/functions": "^5.1.2",
     "@types/node": "^25.2.1",
