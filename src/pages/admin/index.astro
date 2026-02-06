@@ -1,0 +1,8 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { AdminPosts } from "../../components/admin/AdminPosts";
+---
+
+<BaseLayout title="Admin">
+  <AdminPosts client:load />
+</BaseLayout>

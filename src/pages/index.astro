@@ -1,0 +1,117 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { supabase } from "../lib/supabaseClient";
+
+type Post = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  cover_url: string | null;
+  created_at: string;
+};
+
+const { data: posts, error } = await supabase
+  .from("posts")
+  .select("id,title,slug,excerpt,cover_url,created_at")
+  .eq("status", "published")
+  .order("created_at", { ascending: false })
+  .limit(12);
+
+const list = (posts ?? []) as Post[];
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
+---
+
+<BaseLayout title="Atlas">
+  <main class="atlas">
+    <header class="hero">
+      <p class="kicker">ATLAS</p>
+      <h1>Travel notes, camps, routes & mini-guides</h1>
+      <p class="sub">A photographic log — fast to browse, easy to publish.</p>
+
+      <nav class="nav">
+        <a class="chip" href="/posts">All entries</a>
+        <a class="chip ghost" href="/admin/login">Admin</a>
+      </nav>
+    </header>
+
+    {error && (
+      <p class="error">Couldn’t load posts. Check Supabase connection.</p>
+    )}
+
+    <section class="grid" aria-label="Latest entries">
+      {list.map((p) => (
+        <a class="card" href={`/posts/${p.slug}`}>
+          <div class="thumb">
+            {p.cover_url ? <img src={p.cover_url} alt="" loading="lazy" /> : <div class="thumbPh" />}
+          </div>
+          <div class="meta">
+            <p class="date">{fmt(p.created_at)}</p>
+            <h2>{p.title}</h2>
+            {p.excerpt && <p class="excerpt">{p.excerpt}</p>}
+          </div>
+        </a>
+      ))}
+    </section>
+  </main>
+
+  <style>
+    :global(body){ background:#07080b; color:rgba(255,255,255,.92); }
+    .atlas{ min-height:100svh; padding:28px 18px 60px; max-width:1100px; margin:0 auto; }
+    .hero{ padding:10px 0 22px; }
+    .kicker{ letter-spacing:.28em; text-transform:uppercase; color:rgba(255,255,255,.6); font-size:12px; margin:0 0 10px; }
+    h1{ margin:0; font-size:clamp(34px,5vw,56px); line-height:1.02; letter-spacing:-.02em; }
+    .sub{ margin:12px 0 0; color:rgba(255,255,255,.72); max-width:65ch; line-height:1.6; }
+    .nav{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+    .chip{
+      display:inline-flex; padding:10px 14px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06);
+      text-decoration:none; color:inherit;
+    }
+    .chip.ghost{ background:rgba(255,255,255,.03); }
+    .error{ margin:18px 0; color:rgba(255,140,140,.95); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:14px;
+      margin-top:10px;
+    }
+    .card{
+      grid-column: span 12;
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:14px;
+      padding:12px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      text-decoration:none;
+      color:inherit;
+      transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
+    }
+    .card:hover{
+      transform: translateY(-2px);
+      background:rgba(255,255,255,.05);
+      border-color: rgba(214,199,255,.22);
+    }
+    .thumb{ border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.02); }
+    .thumb img{ width:100%; height:110px; object-fit:cover; display:block; }
+    .thumbPh{ height:110px; }
+    .meta{ align-self:center; }
+    .date{ margin:0 0 6px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+    h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
+    .excerpt{ margin:8px 0 0; color:rgba(255,255,255,.70); line-height:1.55; }
+
+    @media (min-width: 760px){
+      .card{ grid-column: span 6; grid-template-columns: 1fr; }
+      .thumb img, .thumbPh{ height:180px; }
+    }
+    @media (min-width: 1040px){
+      .card{ grid-column: span 4; }
+      .thumb img, .thumbPh{ height:180px; }
+    }
+  </style>
+</BaseLayout>
