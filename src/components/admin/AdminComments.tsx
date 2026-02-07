@@ -38,10 +38,13 @@ export function AdminComments() {
   async function load() {
     try {
       setErr(null);
-      const list = await api.req(`/.netlify/functions/admin-comments?status=${status}`);
-      setRows(list);
+      const data = await api.req(`/.netlify/functions/admin-comments?status=${status}`);
+
+      // ✅ IMPORTANT: use data.comments (array), not data (object)
+      setRows(Array.isArray(data?.comments) ? data.comments : []);
     } catch (e: any) {
       setErr(e?.message || "Failed to load");
+      setRows([]); // ✅ avoid crashing render
     }
   }
 
@@ -51,15 +54,18 @@ export function AdminComments() {
 
   async function setRowStatus(id: string, next: string) {
     await api.req("/.netlify/functions/admin-comments", {
-      method: "PUT",
-      body: JSON.stringify({ id, status: next }),
+      method: "POST",
+      body: JSON.stringify({ action: "setStatus", id, status: next }),
     });
     load();
   }
 
   async function del(id: string) {
     if (!confirm("Delete this comment?")) return;
-    await api.req(`/.netlify/functions/admin-comments?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    await api.req("/.netlify/functions/admin-comments", {
+      method: "POST",
+      body: JSON.stringify({ action: "setStatus", id, status: "deleted" }),
+    });
     load();
   }
 
@@ -68,9 +74,8 @@ export function AdminComments() {
     if (!text.trim()) return;
     await api.req("/.netlify/functions/admin-comments", {
       method: "POST",
-      body: JSON.stringify({ post_id: r.post_id, parent_id: r.id, body: text }),
+      body: JSON.stringify({ action: "reply", id: r.id, reply: text }),
     });
-    // keep in same status list
     load();
   }
 
