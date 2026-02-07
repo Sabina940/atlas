@@ -61,39 +61,33 @@ export const handler: Handler = async (event) => {
 
       // Reply = INSERT a new comment row (child)
       if (action === "reply") {
-        const parentId = String(body?.id || "");
-        const reply = String(body?.reply || "").trim();
+          const parentId = String(body?.id || "");
+          const reply = String(body?.reply || "");
 
-        if (!parentId) return json(400, { error: "Missing id" });
-        if (!reply) return json(400, { error: "Reply is empty" });
+          if (!parentId || !reply.trim()) return json(400, { error: "Missing id/reply" });
 
-        // Fetch parent to get post_id + ensure it exists
-        const { data: parent, error: pErr } = await db
-          .from("comments")
-          .select("id, post_id")
-          .eq("id", parentId)
-          .single();
+          // Get the parent comment to copy its post_id
+          const { data: parent, error: parentErr } = await db
+            .from("comments")
+            .select("id, post_id")
+            .eq("id", parentId)
+            .single();
 
-        if (pErr) return json(500, { error: pErr.message });
-        if (!parent?.post_id) return json(404, { error: "Parent comment not found" });
+          if (parentErr || !parent) return json(404, { error: "Parent comment not found" });
 
-        const { error: insErr } = await db.from("comments").insert({
-          post_id: parent.post_id,
-          parent_id: parentId,
-          author_name: "Admin",
-          author_email: null,
-          body: reply,
-          status: "approved",
-          is_admin_reply: true,
-        });
+          const { error: insErr } = await db.from("comments").insert({
+            post_id: parent.post_id,
+            parent_id: parent.id,
+            author_name: "Admin",
+            author_email: null,
+            body: reply,
+            status: "approved",
+            is_admin_reply: true,
+          });
 
-        if (insErr) return json(500, { error: insErr.message });
-
-        // Optional: auto-approve parent when you reply
-        await db.from("comments").update({ status: "approved" }).eq("id", parentId);
-
-        return json(200, { ok: true });
-      }
+          if (insErr) return json(500, { error: insErr.message });
+          return json(200, { ok: true });
+        }
 
       return json(400, { error: "Unknown action" });
     }
