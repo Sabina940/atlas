@@ -10,7 +10,7 @@ type Post = {
 };
 
 export function AdminPosts() {
-  const { token, email, loading } = useAdminToken();
+  const { token, email, loading, logout } = useAdminToken();
   const [posts, setPosts] = useState<Post[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
@@ -65,6 +65,15 @@ export function AdminPosts() {
           <h2 style={{ margin: 0 }}>Posts</h2>
           <p style={{ margin: "6px 0 0", opacity: 0.75 }}>Signed in as {email}</p>
         </div>
+        <button
+          className="csBtn ghost"
+          onClick={async () => {
+            await logout();
+            window.location.href = "/admin/login";
+          }}
+        >
+          Log out
+        </button>
         <a className="adminBtn" href="/admin/comments">Comments</a>
       </div>
 

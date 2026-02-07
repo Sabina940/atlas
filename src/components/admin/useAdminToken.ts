@@ -5,6 +5,7 @@ type AdminTokenState = {
   token: string | null;
   email: string | null;
   loading: boolean;
+  logout: () => Promise<void>;
 };
 
 export default function useAdminToken(): AdminTokenState {
@@ -43,5 +44,11 @@ export default function useAdminToken(): AdminTokenState {
     };
   }, []);
 
-  return { token, email, loading };
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setToken(null);
+    setEmail(null);
+  };
+
+  return { token, email, loading, logout };
 }

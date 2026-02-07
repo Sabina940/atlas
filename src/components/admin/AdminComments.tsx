@@ -14,7 +14,7 @@ type Row = {
 };
 
 export function AdminComments() {
-  const { token, loading } = useAdminToken();
+  const { token, loading, logout } = useAdminToken();
   const [status, setStatus] = useState<"pending" | "approved" | "spam">("pending");
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -92,6 +92,16 @@ export function AdminComments() {
           </div>
 
           <h1 className="csTitle">Moderation</h1>
+
+          <button
+              className="csBtn ghost"
+              onClick={async () => {
+                await logout();
+                window.location.href = "/admin/login";
+              }}
+            >
+              Log out
+            </button>
 
           <div className="csActions">
             <button className="csBtn ghost" onClick={() => setStatus("pending")}>Pending</button>
