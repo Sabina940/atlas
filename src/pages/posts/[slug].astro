@@ -35,7 +35,8 @@ if (error || !post) {
 const p = post as Post;
 
 // Convert markdown -> HTML
-const html = marked.parse(p.content_md ?? "");
+const html = await marked.parse(post.content_md ?? "");
+
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {

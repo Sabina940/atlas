@@ -8,20 +8,33 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: fa
 
 type PostStatus = "draft" | "published";
 
+type PostInput = {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  cover_url?: string | null;
+  tags?: string[] | string; // allow "a,b,c" from UI
+  status?: PostStatus;
+  content_md?: string | null;
+  published_at?: string | null;
+};
+
 export const handler: Handler = async (event) => {
   try {
     const admin = await requireAdmin(event);
     if (!admin.ok) return json(admin.status, { error: admin.msg });
 
-    // ---------- GET: list posts OR single post ----------
+    // ---------- GET: list OR single ----------
     if (event.httpMethod === "GET") {
       const id = event.queryStringParameters?.id;
 
-      // Single post
       if (id) {
         const { data, error } = await db
           .from("posts")
-          .select("id,title,slug,excerpt,cover_url,tags,status,content_md,created_at,updated_at,published_at")
+          .select(
+            "id,title,slug,excerpt,cover_url,tags,status,content_md,created_at,updated_at,published_at"
+          )
           .eq("id", id)
           .single();
 
@@ -29,7 +42,6 @@ export const handler: Handler = async (event) => {
         return json(200, { post: data });
       }
 
-      // List
       const { data, error } = await db
         .from("posts")
         .select("id,title,slug,excerpt,cover_url,tags,status,created_at,updated_at,published_at")
@@ -39,54 +51,133 @@ export const handler: Handler = async (event) => {
       return json(200, { posts: data ?? [] });
     }
 
-    // ---------- POST: actions ----------
+    // ---------- PUT: upsert/save ----------
+    // Body: { post: {...} }
+    if (event.httpMethod === "PUT") {
+      const body = safeJson(event.body);
+      const post: PostInput | null = body?.post ?? null;
+      if (!post) return json(400, { error: "Missing post" });
+
+      const title = String(post.title ?? "").trim();
+      const slug = String(post.slug ?? "").trim();
+      if (!title || !slug) return json(400, { error: "Post needs title + slug" });
+
+      const status = (post.status ?? "draft") as PostStatus;
+      if (!["draft", "published"].includes(status)) return json(400, { error: "Invalid status" });
+
+      const tags =
+        Array.isArray(post.tags)
+          ? post.tags.map((t) => String(t).trim()).filter(Boolean)
+          : typeof post.tags === "string"
+          ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : [];
+
+      const published_at =
+        status === "published"
+          ? (post.published_at ?? new Date().toISOString())
+          : null;
+
+      const clean = {
+        id: post.id ?? undefined,
+        title,
+        slug,
+        excerpt: post.excerpt ?? null,
+        cover_url: post.cover_url ?? null,
+        tags,
+        status,
+        content_md: post.content_md ?? "",
+        updated_at: new Date().toISOString(),
+        published_at,
+      };
+
+      const { data, error } = await db
+        .from("posts")
+        .upsert(clean, { onConflict: "slug" })
+        .select(
+          "id,title,slug,excerpt,cover_url,tags,status,content_md,created_at,updated_at,published_at"
+        )
+        .single();
+
+      if (error) return json(500, { error: error.message });
+      return json(200, { post: data });
+    }
+
+    // ---------- DELETE: delete ----------
+    if (event.httpMethod === "DELETE") {
+      const id = event.queryStringParameters?.id;
+      if (!id) return json(400, { error: "Missing id" });
+
+      const { error } = await db.from("posts").delete().eq("id", id);
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true });
+    }
+
+    // ---------- OPTIONAL: keep POST actions (no recursion) ----------
     if (event.httpMethod === "POST") {
       const body = safeJson(event.body);
       const action = body?.action;
 
-      // Create or update
       if (action === "upsert") {
-        const post = body?.post ?? null;
+        const post: PostInput | null = body?.post ?? null;
         if (!post) return json(400, { error: "Missing post" });
 
-        // required fields
-        if (!post.title || !post.slug) return json(400, { error: "Post needs title + slug" });
+        // run same normalization as PUT (inline)
+        const title = String(post.title ?? "").trim();
+        const slug = String(post.slug ?? "").trim();
+        if (!title || !slug) return json(400, { error: "Post needs title + slug" });
 
-        // normalize fields
         const status = (post.status ?? "draft") as PostStatus;
         if (!["draft", "published"].includes(status)) return json(400, { error: "Invalid status" });
 
+        const tags =
+          Array.isArray(post.tags)
+            ? post.tags.map((t) => String(t).trim()).filter(Boolean)
+            : typeof post.tags === "string"
+            ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
+            : [];
+
+        const published_at =
+          status === "published"
+            ? (post.published_at ?? new Date().toISOString())
+            : null;
+
         const clean = {
           id: post.id ?? undefined,
-          title: String(post.title),
-          slug: String(post.slug),
+          title,
+          slug,
           excerpt: post.excerpt ?? null,
           cover_url: post.cover_url ?? null,
-          tags: Array.isArray(post.tags) ? post.tags : [],
+          tags,
           status,
           content_md: post.content_md ?? "",
           updated_at: new Date().toISOString(),
-          published_at:
-            status === "published"
-              ? (post.published_at ?? new Date().toISOString())
-              : null,
+          published_at,
         };
 
         const { data, error } = await db
           .from("posts")
           .upsert(clean, { onConflict: "slug" })
-          .select("id,title,slug,excerpt,cover_url,tags,status,content_md,created_at,updated_at,published_at")
+          .select(
+            "id,title,slug,excerpt,cover_url,tags,status,content_md,created_at,updated_at,published_at"
+          )
           .single();
 
         if (error) return json(500, { error: error.message });
         return json(200, { post: data });
       }
 
-      // Publish / Unpublish
+      if (action === "delete") {
+        const id = String(body?.id || "");
+        if (!id) return json(400, { error: "Missing id" });
+
+        const { error } = await db.from("posts").delete().eq("id", id);
+        if (error) return json(500, { error: error.message });
+        return json(200, { ok: true });
+      }
+
       if (action === "setStatus") {
         const id = String(body?.id || "");
         const status = body?.status as PostStatus;
-
         if (!id) return json(400, { error: "Missing id" });
         if (!["draft", "published"].includes(status)) return json(400, { error: "Invalid status" });
 
@@ -97,16 +188,6 @@ export const handler: Handler = async (event) => {
         };
 
         const { error } = await db.from("posts").update(update).eq("id", id);
-        if (error) return json(500, { error: error.message });
-        return json(200, { ok: true });
-      }
-
-      // Delete
-      if (action === "delete") {
-        const id = String(body?.id || "");
-        if (!id) return json(400, { error: "Missing id" });
-
-        const { error } = await db.from("posts").delete().eq("id", id);
         if (error) return json(500, { error: error.message });
         return json(200, { ok: true });
       }
