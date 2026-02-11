@@ -1,67 +1,74 @@
-/* Admin (shared) */
-.adminPanel { margin-top: 12px; }
-.adminHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.adminHeaderRight { display: flex; gap: 10px; align-items: center; }
-.adminTitle { margin: 0; font-size: 22px; letter-spacing: -.01em; }
-.adminSub { margin: 6px 0 0; opacity: .75; }
-
-.adminFilters { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.csBtn.isActive { border-color: rgba(214,199,255,.35); background: rgba(214,199,255,.08); }
-
-.adminError { margin-top: 12px; color: rgba(255,120,120,.9); }
-
-.adminList { margin-top: 16px; display: grid; gap: 10px; }
-.adminEmpty { opacity: .75; padding: 12px 0; }
-.adminState { opacity: .85; }
-
-/* Comment cards */
-.adminCommentCard {
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.04);
-}
-.adminCommentTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: baseline;
-}
-.adminCommentTitle { font-weight: 650; }
-.adminAuthor { font-weight: 700; }
-.adminBadge {
-  margin-left: 8px;
-  font-size: 12px;
-  opacity: .85;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.05);
-}
-.adminOnPost { opacity: .7; font-weight: 400; margin-left: 6px; }
-
-.adminCommentBody { margin-top: 8px; opacity: .92; line-height: 1.55; white-space: pre-wrap; }
-
-.adminActions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-
-/* Status pill */
-.adminStatusPill {
-  font-size: 12px;
-  letter-spacing: .06em;
-  opacity: .85;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
+:root{
+  --bg:#07080b;
+  --fg:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.70);
+  --muted2:rgba(255,255,255,.55);
+  --card:rgba(255,255,255,.04);
+  --border:rgba(255,255,255,.12);
+  --border2:rgba(255,255,255,.18);
+  --accent:rgba(214,199,255,.95);
+  --accentSoft:rgba(214,199,255,.10);
 }
 
-/* optional: status variations (subtle) */
-.adminStatusPill.status-approved { border-color: rgba(120,255,180,.22); }
-.adminStatusPill.status-pending  { border-color: rgba(255,220,140,.22); }
-.adminStatusPill.status-spam     { border-color: rgba(255,140,140,.22); }
-.adminStatusPill.status-deleted  { opacity: .55; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* Shell */
+.shell{ max-width: 1100px; margin: 0 auto; padding: 28px 18px 70px; }
+.shellTop{ display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+.shellNav{ display:flex; gap:10px; flex-wrap:wrap; }
+.kicker{ margin:0 0 10px; color:var(--muted2); font-size:12px; letter-spacing:.10em; text-transform:uppercase; }
+.h1{ margin:0; font-size:clamp(28px,4vw,44px); letter-spacing:-.02em; }
+.sub{ margin:10px 0 0; color:var(--muted); line-height:1.6; }
+
+/* Buttons */
+.btn{
+  appearance:none;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.05);
+  color:var(--fg);
+  padding:10px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  text-decoration:none;
+  font:inherit;
+  line-height:1;
+  transition:transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+.btn:hover{ transform:translateY(-1px); background:rgba(255,255,255,.07); border-color:rgba(214,199,255,.22); }
+.btn.ghost{ background:transparent; }
+.btn.primary{ border-color:rgba(214,199,255,.25); background:var(--accentSoft); }
+
+/* Admin panels */
+.adminPanel{ margin-top: 18px; display:grid; gap:12px; }
+.adminToolbar{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.adminFilters{ display:flex; gap:10px; flex-wrap:wrap; }
+.adminList{ display:grid; gap:10px; }
+
+.card{
+  border:1px solid var(--border);
+  background:var(--card);
+  border-radius:18px;
+  padding:14px;
+}
+.cardTop{ display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+.pill{
+  font-size:12px;
+  letter-spacing:.06em;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.03);
+  opacity:.9;
+}
+.pill.approved{ border-color:rgba(120,255,180,.22); }
+.pill.pending{ border-color:rgba(255,220,140,.22); }
+.pill.spam{ border-color:rgba(255,140,140,.22); }
+
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.muted{ color:var(--muted2); }

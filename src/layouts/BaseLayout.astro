@@ -5,8 +5,8 @@ type Props = {
   title?: string;
   description?: string;
   canonical?: string;
-  ogImage?: string;
-  noIndex?: boolean;
+  ogImage?: string; // absolute URL
+  noIndex?: boolean; // for /admin pages
 };
 
 const {
@@ -27,7 +27,7 @@ const themeColor = "#07080b";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="theme-dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,7 +38,6 @@ const themeColor = "#07080b";
 
     <meta name="theme-color" content={themeColor} />
     <meta name="color-scheme" content="dark light" />
-
     {noIndex ? <meta name="robots" content="noindex, nofollow" /> : null}
 
     <!-- Open Graph -->
@@ -71,21 +70,3 @@ const themeColor = "#07080b";
     </main>
   </body>
 </html>
-
-<style is:global>
-  .skip {
-    position: absolute;
-    left: -9999px;
-    top: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    text-decoration: none;
-    z-index: 9999;
-  }
-  .skip:focus {
-    left: 10px;
-  }
-</style>
