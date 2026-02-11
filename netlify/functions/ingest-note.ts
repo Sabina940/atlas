@@ -9,7 +9,18 @@ export const handler: Handler = async (event) => {
       return { statusCode: 401, body: "Unauthorized" };
     }
 
-    const raw = event.body || "";
+    const contentType = event.headers["content-type"] || event.headers["Content-Type"] || "";
+    let raw = event.body || "";
+
+    // If Shortcut sends JSON: { raw: "..." }
+    if (contentType.includes("application/json")) {
+      try {
+        const parsed = JSON.parse(raw);
+        raw = String(parsed?.raw ?? "");
+      } catch {
+        // leave raw as-is
+      }
+    }
     const note = parseNote(raw);
 
     if (!note.slug) {
