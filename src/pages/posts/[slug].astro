@@ -3,6 +3,7 @@ export const prerender = false;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { supabase } from "../../lib/supabaseClient";
+import { marked } from "marked";
 
 const { slug } = Astro.params;
 
@@ -10,7 +11,7 @@ type Post = {
   id: string;
   title: string;
   slug: string;
-  content: string | null;     // HTML string
+  content_md: string;      // markdown in DB
   excerpt: string | null;
   cover_url: string | null;
   created_at: string;
@@ -22,7 +23,7 @@ if (!slug) {
 
 const { data: post, error } = await supabase
   .from("posts")
-  .select("id,title,slug,content,excerpt,cover_url,created_at")
+  .select("id,title,slug,content_md,excerpt,cover_url,created_at")
   .eq("slug", slug)
   .eq("status", "published")
   .single();
@@ -33,6 +34,9 @@ if (error || !post) {
 
 const p = post as Post;
 
+// Convert markdown -> HTML
+const html = marked.parse(p.content_md ?? "");
+
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
     year: "numeric",
@@ -41,36 +45,23 @@ const fmt = (iso: string) =>
   });
 ---
 
-<BaseLayout title={p ? `Atlas — ${p.title}` : "Atlas — Not found"}>
+<BaseLayout title={`Atlas — ${p.title}`}>
   <main class="page">
     <header class="top">
       <a class="back" href="/posts">← All entries</a>
 
-      {p ? (
-        <>
-          <p class="date">{fmt(p.created_at)}</p>
-          <h1>{p.title}</h1>
-          {p.excerpt && <p class="excerpt">{p.excerpt}</p>}
-        </>
-      ) : (
-        <>
-          <h1>Not found</h1>
-          <p class="excerpt">This entry doesn’t exist (or isn’t published yet).</p>
-        </>
-      )}
+      <p class="date">{fmt(p.created_at)}</p>
+      <h1>{p.title}</h1>
+      {p.excerpt && <p class="excerpt">{p.excerpt}</p>}
     </header>
 
-    {error && <p class="error">Couldn’t load entry.</p>}
-
-    {p?.cover_url && (
+    {p.cover_url && (
       <figure class="cover">
         <img src={p.cover_url} alt="" />
       </figure>
     )}
 
-    {p?.content && (
-      <article class="content" set:html={p.content} />
-    )}
+    <article class="content" set:html={html} />
   </main>
 
   <style>
@@ -80,7 +71,6 @@ const fmt = (iso: string) =>
     .date{ margin:0 0 10px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.10em; text-transform:uppercase; }
     h1{ margin:0; font-size:clamp(32px,5vw,56px); line-height:1.02; letter-spacing:-.02em; }
     .excerpt{ margin:12px 0 0; color:rgba(255,255,255,.72); line-height:1.65; }
-    .error{ margin:18px 0; color:rgba(255,140,140,.95); }
 
     .cover{
       margin:22px 0 0;
@@ -92,7 +82,6 @@ const fmt = (iso: string) =>
     }
     .cover img{ width:100%; height:auto; display:block; }
 
-    /* Content styling (cinematic, readable) */
     .content{
       margin-top:22px;
       line-height:1.85;
