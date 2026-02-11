@@ -1,7 +1,27 @@
 ---
+export const prerender = false;
+
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { AdminComments } from "../../components/admin/AdminComments";
+
 ---
-<BaseLayout title="Admin · Comments">
-  <AdminComments client:load />
+
+<BaseLayout title="Atlas — Admin Comments" noIndex={true}>
+  <main class="adminPage">
+    <header class="adminHeader">
+      <div>
+        <h1 class="adminH1">Comments</h1>
+        <p class="adminSub">Moderation queue</p>
+      </div>
+
+      <div class="adminHeaderRight">
+        <a class="csBtn ghost" href="/admin">Back to posts</a>
+        <a class="csBtn ghost" href="/admin/login">Log out</a>
+      </div>
+    </header>
+
+    <section class="adminCard">
+      <AdminComments client:load />
+    </section>
+  </main>
 </BaseLayout>

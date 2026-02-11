@@ -1,0 +1,67 @@
+/* Admin (shared) */
+.adminPanel { margin-top: 12px; }
+.adminHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.adminHeaderRight { display: flex; gap: 10px; align-items: center; }
+.adminTitle { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.adminSub { margin: 6px 0 0; opacity: .75; }
+
+.adminFilters { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.csBtn.isActive { border-color: rgba(214,199,255,.35); background: rgba(214,199,255,.08); }
+
+.adminError { margin-top: 12px; color: rgba(255,120,120,.9); }
+
+.adminList { margin-top: 16px; display: grid; gap: 10px; }
+.adminEmpty { opacity: .75; padding: 12px 0; }
+.adminState { opacity: .85; }
+
+/* Comment cards */
+.adminCommentCard {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+.adminCommentTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.adminCommentTitle { font-weight: 650; }
+.adminAuthor { font-weight: 700; }
+.adminBadge {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: .85;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.05);
+}
+.adminOnPost { opacity: .7; font-weight: 400; margin-left: 6px; }
+
+.adminCommentBody { margin-top: 8px; opacity: .92; line-height: 1.55; white-space: pre-wrap; }
+
+.adminActions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Status pill */
+.adminStatusPill {
+  font-size: 12px;
+  letter-spacing: .06em;
+  opacity: .85;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+}
+
+/* optional: status variations (subtle) */
+.adminStatusPill.status-approved { border-color: rgba(120,255,180,.22); }
+.adminStatusPill.status-pending  { border-color: rgba(255,220,140,.22); }
+.adminStatusPill.status-spam     { border-color: rgba(255,140,140,.22); }
+.adminStatusPill.status-deleted  { opacity: .55; }
