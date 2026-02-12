@@ -17,24 +17,60 @@ type Post = {
   published_at: string | null;
 };
 
-const emptyPost = (): Omit<Post, "id" | "created_at" | "updated_at" | "published_at"> => ({
+type DraftPost = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  cover_url: string;
+  tags: string[] | string; // allow comma string while editing
+  status: PostStatus;
+  content_md: string;
+};
+
+const emptyPost = (): DraftPost => ({
   title: "",
   slug: "",
-  excerpt: null,
-  cover_url: null,
+  excerpt: "",
+  cover_url: "",
   tags: [],
   status: "draft",
   content_md: "",
 });
 
+function fmtDate(iso?: string | null) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function tagsToArray(tags: DraftPost["tags"]) {
+  if (Array.isArray(tags)) return tags;
+  return String(tags)
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
 export function AdminPosts() {
   const { token, email, loading, logout } = useAdminToken();
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<any>(emptyPost());
+  const [draft, setDraft] = useState<DraftPost>(emptyPost());
   const [saving, setSaving] = useState(false);
+
+  // modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setMode] = useState<"view" | "edit">("view");
 
   const api = useMemo(() => {
     return {
@@ -58,9 +94,10 @@ export function AdminPosts() {
     try {
       setErr(null);
       const data = await api.req("admin-posts");
-      setPosts(data.posts ?? []);
+      setPosts(Array.isArray(data?.posts) ? data.posts : []);
     } catch (e: any) {
       setErr(e?.message ?? "Failed to load posts");
+      setPosts([]);
     }
   }
 
@@ -68,17 +105,22 @@ export function AdminPosts() {
     try {
       setErr(null);
       const data = await api.req(`admin-posts?id=${encodeURIComponent(id)}`);
-      const p: Post = data.post;
+      const p: Post = data?.post;
+      if (!p?.id) throw new Error("Post not found");
+
       setActiveId(p.id);
       setDraft({
-        title: p.title,
-        slug: p.slug,
+        title: p.title ?? "",
+        slug: p.slug ?? "",
         cover_url: p.cover_url ?? "",
         excerpt: p.excerpt ?? "",
         tags: p.tags ?? [],
-        status: p.status,
+        status: p.status ?? "draft",
         content_md: p.content_md ?? "",
       });
+
+      setMode("view");
+      setModalOpen(true);
     } catch (e: any) {
       setErr(e?.message ?? "Failed to load post");
     }
@@ -87,32 +129,26 @@ export function AdminPosts() {
   useEffect(() => {
     if (!token) return;
     loadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  if (loading) return <div className="adminCard">Loading…</div>;
-  if (!email) {
-    return (
-      <div className="adminCard">
-        <h2>Not signed in</h2>
-        <p>Go to <a href="/admin/login">/admin/login</a></p>
-      </div>
-    );
-  }
-
-  const active = posts.find((p) => p.id === activeId);
+  const active = posts.find((p) => p.id === activeId) ?? null;
 
   async function save(nextStatus?: PostStatus) {
     setSaving(true);
     try {
+      const finalStatus = (nextStatus ?? draft.status) as PostStatus;
+
       const payload = {
         post: {
           id: activeId ?? undefined,
-          ...draft,
-          status: (nextStatus ?? draft.status) as PostStatus,
-          tags:
-            typeof draft.tags === "string"
-              ? draft.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
-              : draft.tags,
+          title: draft.title,
+          slug: draft.slug,
+          excerpt: draft.excerpt || null,
+          cover_url: draft.cover_url || null,
+          tags: tagsToArray(draft.tags),
+          status: finalStatus,
+          content_md: draft.content_md ?? "",
         },
       };
 
@@ -121,9 +157,12 @@ export function AdminPosts() {
         body: JSON.stringify(payload),
       });
 
-      // refresh list + re-open saved post
       await loadList();
-      if (data?.post?.id) await loadOne(data.post.id);
+
+      // keep modal open and in view mode after save
+      const savedId = data?.post?.id ?? activeId;
+      if (savedId) await loadOne(savedId);
+      setMode("view");
     } catch (e: any) {
       setErr(e?.message ?? "Save failed");
     } finally {
@@ -134,29 +173,57 @@ export function AdminPosts() {
   async function del() {
     if (!activeId) return;
     if (!confirm("Delete this post?")) return;
+
+    setSaving(true);
     try {
       await api.req(`admin-posts?id=${encodeURIComponent(activeId)}`, { method: "DELETE" });
+
       setActiveId(null);
       setDraft(emptyPost());
-      loadList();
+      setModalOpen(false);
+      await loadList();
     } catch (e: any) {
       setErr(e?.message ?? "Delete failed");
+    } finally {
+      setSaving(false);
     }
   }
 
+  function startNew() {
+    setActiveId(null);
+    setDraft(emptyPost());
+    setMode("edit");
+    setModalOpen(true);
+  }
+
+  if (loading) return <div className="adminState">Loading…</div>;
+
+  if (!email) {
+    return (
+      <div className="adminState">
+        <h2 className="h2">Not signed in</h2>
+        <p className="muted">
+          Go to <a href="/admin/login">/admin/login</a>
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="adminCard">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Admin · Posts</h2>
-          <p style={{ margin: "6px 0 0", opacity: 0.75 }}>Signed in as {email}</p>
-        </div>
+    <div className="adminShell">
+      {/* Top row (keep it minimal; let Astro handle the nice page header) */}
+      <div className="adminTopBar">
+        <div className="muted">Signed in as {email}</div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <a className="adminBtn" href="/admin/comments">Comments</a>
-
+        <div className="adminTopActions">
+          <a className="btn ghost" href="/admin/comments">
+            Comments
+          </a>
+          <a className="btn ghost" href="/" target="_blank" rel="noreferrer">
+            Public site
+          </a>
           <button
-            className="csBtn ghost"
+            className="btn ghost"
             onClick={async () => {
               await logout();
               window.location.href = "/admin/login";
@@ -167,119 +234,210 @@ export function AdminPosts() {
         </div>
       </div>
 
-      {err && <p style={{ color: "#ffb4b4", marginTop: 12 }}>{err}</p>}
+      {err && <div className="adminNotice error">{err}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, marginTop: 16 }}>
-        {/* left: list */}
-        <div style={{ borderRight: "1px solid rgba(0,0,0,.08)", paddingRight: 12 }}>
-          <button
-            className="csBtn"
-            onClick={() => {
-              setActiveId(null);
-              setDraft(emptyPost());
-            }}
-          >
-            + New
-          </button>
+      <div className="adminGrid">
+        <div className="adminLeft">
+          <div className="adminLeftHeader">
+            <h3 className="h3">Posts</h3>
+            <button className="btn" onClick={startNew}>
+              + New
+            </button>
+          </div>
 
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            {posts.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => loadOne(p.id)}
-                className="csBtn ghost"
-                style={{ justifyContent: "space-between", display: "flex" }}
-              >
-                <span style={{ textAlign: "left" }}>
-                  <div style={{ fontWeight: 700 }}>{p.title}</div>
-                  <div style={{ opacity: 0.7, fontSize: 12 }}>/posts/{p.slug}</div>
-                </span>
-                <span style={{ opacity: 0.75, fontSize: 12 }}>
-                  {p.status === "published" ? "Published" : "Draft"}
-                </span>
-              </button>
-            ))}
+          <div className="adminCards">
+            {posts.length === 0 ? (
+              <div className="adminEmpty">No posts yet.</div>
+            ) : (
+              posts.map((p) => (
+                <button
+                  key={p.id}
+                  className="postCard"
+                  onClick={() => loadOne(p.id)}
+                  type="button"
+                >
+                  <div className="postCardTop">
+                    <div className="postCardTitle">{p.title || "Untitled"}</div>
+                    <span className={`pill ${p.status === "published" ? "pillGood" : "pillWarn"}`}>
+                      {p.status}
+                    </span>
+                  </div>
+
+                  <div className="postCardMeta">
+                    <span className="mono">/posts/{p.slug || "…"}</span>
+                    <span className="dot">•</span>
+                    <span>{fmtDate(p.created_at)}</span>
+                  </div>
+
+                  {p.excerpt ? <div className="postCardExcerpt">{p.excerpt}</div> : null}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* right: editor */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-            <h3 style={{ margin: 0 }}>
-              Editing {draft.status === "published" ? "(Published)" : "(Draft)"}
-            </h3>
+        <div className="adminRight">
+          <div className="adminHint">
+            Select a post to manage it. Use <span className="mono">+ New</span> to create one.
+          </div>
+        </div>
+      </div>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {draft.slug?.trim() && draft.status === "published" && (
-                <a className="csBtn ghost" href={`/posts/${draft.slug}`} target="_blank" rel="noreferrer">
-                  Open
-                </a>
-              )}
+      {/* MODAL */}
+      {modalOpen && (
+        <div className="modalOverlay" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modalHeader">
+              <div>
+                <div className="modalKicker">{activeId ? "Post" : "New post"}</div>
+                <div className="modalTitle">{draft.title || "Untitled"}</div>
+              </div>
 
-              <button className="csBtn" onClick={() => save()} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
+              <button className="btn ghost" onClick={() => setModalOpen(false)} aria-label="Close">
+                ✕
               </button>
+            </div>
 
-              {draft.status !== "published" ? (
-                <button className="csBtn" onClick={() => save("published")} disabled={saving}>
-                  Publish
-                </button>
+            <div className="modalBody">
+              {/* VIEW MODE (actions) */}
+              {mode === "view" ? (
+                <>
+                  <div className="modalRow">
+                    <span className={`pill ${draft.status === "published" ? "pillGood" : "pillWarn"}`}>
+                      {draft.status}
+                    </span>
+                    <span className="muted mono">/posts/{draft.slug || "…"}</span>
+                  </div>
+
+                  {draft.excerpt ? <p className="muted">{draft.excerpt}</p> : null}
+
+                  <div className="modalActions">
+                    {draft.slug?.trim() && draft.status === "published" && (
+                      <a className="btn ghost" href={`/posts/${draft.slug}`} target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                    )}
+
+                    <button className="btn" onClick={() => setMode("edit")}>
+                      Edit
+                    </button>
+
+                    {draft.status !== "published" ? (
+                      <button className="btn" onClick={() => save("published")} disabled={saving}>
+                        {saving ? "Working…" : "Publish"}
+                      </button>
+                    ) : (
+                      <button className="btn ghost" onClick={() => save("draft")} disabled={saving}>
+                        {saving ? "Working…" : "Unpublish"}
+                      </button>
+                    )}
+
+                    {activeId ? (
+                      <button className="btn danger" onClick={del} disabled={saving}>
+                        {saving ? "Working…" : "Delete"}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
               ) : (
-                <button className="csBtn ghost" onClick={() => save("draft")} disabled={saving}>
-                  Unpublish
-                </button>
-              )}
+                /* EDIT MODE */
+                <>
+                  <div className="formGrid">
+                    <label className="label">
+                      Title
+                      <input
+                        className="field"
+                        value={draft.title}
+                        onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                        placeholder="My hike in Eifel"
+                      />
+                    </label>
 
-              {activeId && (
-                <button className="csBtn ghost" onClick={del} disabled={saving}>
-                  Delete
-                </button>
+                    <label className="label">
+                      Slug
+                      <input
+                        className="field mono"
+                        value={draft.slug}
+                        onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+                        placeholder="my-hike-in-eifel"
+                      />
+                    </label>
+
+                    <label className="label">
+                      Cover URL (optional)
+                      <input
+                        className="field"
+                        value={draft.cover_url ?? ""}
+                        onChange={(e) => setDraft((d) => ({ ...d, cover_url: e.target.value }))}
+                        placeholder="https://…"
+                      />
+                    </label>
+
+                    <label className="label">
+                      Tags (comma-separated)
+                      <input
+                        className="field"
+                        value={Array.isArray(draft.tags) ? draft.tags.join(", ") : (draft.tags ?? "")}
+                        onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))}
+                        placeholder="hiking, belgium, eifel"
+                      />
+                    </label>
+
+                    <label className="label">
+                      Excerpt (optional)
+                      <textarea
+                        className="field textarea"
+                        value={draft.excerpt ?? ""}
+                        onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
+                        placeholder="Short teaser…"
+                      />
+                    </label>
+
+                    <label className="label">
+                      Markdown content
+                      <textarea
+                        className="field textarea mono"
+                        style={{ minHeight: 320 }}
+                        value={draft.content_md ?? ""}
+                        onChange={(e) => setDraft((d) => ({ ...d, content_md: e.target.value }))}
+                        placeholder="# Title\n\nWrite your post…"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="modalActions">
+                    <button className="btn ghost" onClick={() => setMode("view")} disabled={saving}>
+                      Back
+                    </button>
+
+                    <button className="btn" onClick={() => save()} disabled={saving}>
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+
+                    {draft.status !== "published" ? (
+                      <button className="btn" onClick={() => save("published")} disabled={saving}>
+                        {saving ? "Saving…" : "Save + Publish"}
+                      </button>
+                    ) : (
+                      <button className="btn ghost" onClick={() => save("draft")} disabled={saving}>
+                        {saving ? "Saving…" : "Unpublish"}
+                      </button>
+                    )}
+
+                    {activeId ? (
+                      <button className="btn danger" onClick={del} disabled={saving}>
+                        {saving ? "Working…" : "Delete"}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-            <input
-              className="csBtn"
-              placeholder="Title"
-              value={draft.title}
-              onChange={(e) => setDraft((d: any) => ({ ...d, title: e.target.value }))}
-            />
-            <input
-              className="csBtn"
-              placeholder="Slug (e.g. my-hike-in-eifel)"
-              value={draft.slug}
-              onChange={(e) => setDraft((d: any) => ({ ...d, slug: e.target.value }))}
-            />
-            <input
-              className="csBtn"
-              placeholder="Cover URL (optional)"
-              value={draft.cover_url ?? ""}
-              onChange={(e) => setDraft((d: any) => ({ ...d, cover_url: e.target.value }))}
-            />
-            <input
-              className="csBtn"
-              placeholder="Tags (comma-separated)"
-              value={Array.isArray(draft.tags) ? draft.tags.join(", ") : (draft.tags ?? "")}
-              onChange={(e) => setDraft((d: any) => ({ ...d, tags: e.target.value }))}
-            />
-            <textarea
-              className="csBtn"
-              placeholder="Excerpt (optional)"
-              value={draft.excerpt ?? ""}
-              onChange={(e) => setDraft((d: any) => ({ ...d, excerpt: e.target.value }))}
-              style={{ minHeight: 90, padding: 12, borderRadius: 12 }}
-            />
-            <textarea
-              className="csBtn"
-              placeholder="Markdown content"
-              value={draft.content_md ?? ""}
-              onChange={(e) => setDraft((d: any) => ({ ...d, content_md: e.target.value }))}
-              style={{ minHeight: 360, padding: 12, borderRadius: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
-            />
-          </div>
+          <button className="modalBackdrop" onClick={() => setModalOpen(false)} aria-label="Close backdrop" />
         </div>
-      </div>
+      )}
     </div>
   );
 }

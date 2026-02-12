@@ -72,3 +72,149 @@ body{
 
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .muted{ color:var(--muted2); }
+
+/* ---------- Admin shell ---------- */
+.adminShell { max-width: 1100px; margin: 0 auto; padding: 18px; }
+.adminTopBar {
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+  margin: 10px 0 16px;
+}
+.adminTopActions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+.adminGrid {
+  display:grid;
+  grid-template-columns: 360px 1fr;
+  gap: 16px;
+}
+.adminLeft { }
+.adminRight { }
+
+.adminLeftHeader {
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  margin-bottom: 10px;
+}
+
+.adminCards { display:grid; gap:10px; }
+.adminEmpty { opacity:.75; padding: 10px 4px; }
+.adminHint {
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 14px;
+  opacity: .85;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.92);
+  text-decoration:none;
+  cursor:pointer;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+.btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(214,199,255,.22); }
+.btn:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+.btn.ghost { background: rgba(255,255,255,.03); }
+.btn.danger { border-color: rgba(255,140,140,.28); background: rgba(255,140,140,.08); }
+
+/* ---------- Cards ---------- */
+.postCard {
+  text-align:left;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  padding: 12px 12px;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+.postCard:hover { transform: translateY(-1px); background: rgba(255,255,255,.05); border-color: rgba(214,199,255,.22); }
+.postCardTop { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.postCardTitle { font-weight: 720; letter-spacing: -.01em; line-height: 1.2; }
+.postCardMeta { margin-top: 6px; display:flex; gap:8px; align-items:center; opacity:.72; font-size: 12px; }
+.postCardMeta .dot { opacity: .45; }
+.postCardExcerpt { margin-top: 8px; opacity:.78; line-height: 1.45; font-size: 13px; }
+
+/* ---------- Pills ---------- */
+.pill {
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  opacity: .92;
+}
+.pillGood { border-color: rgba(120,255,180,.22); }
+.pillWarn { border-color: rgba(255,220,140,.22); }
+
+/* ---------- Modal ---------- */
+.modalOverlay { position: fixed; inset: 0; z-index: 9999; display:flex; align-items:center; justify-content:center; }
+.modalBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); border: 0; }
+.modal {
+  position: relative;
+  width: min(920px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(10,10,14,.95);
+  box-shadow: 0 40px 120px rgba(0,0,0,.6);
+  z-index: 10000;
+}
+.modalHeader {
+  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.modalKicker { opacity: .65; font-size: 12px; letter-spacing:.10em; text-transform:uppercase; }
+.modalTitle { font-size: 20px; font-weight: 760; letter-spacing: -.02em; margin-top: 2px; }
+.modalBody { padding: 14px 16px 16px; }
+.modalRow { display:flex; gap:10px; align-items:center; margin-bottom: 10px; }
+.modalActions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 14px; }
+
+/* ---------- Form ---------- */
+.formGrid { display:grid; gap: 12px; }
+.label { display:grid; gap: 8px; font-size: 13px; opacity:.9; }
+.field {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.92);
+  border-radius: 14px;
+  padding: 12px 14px;
+  outline: none;
+}
+.field:focus {
+  border-color: rgba(214,199,255,.35);
+  box-shadow: 0 0 0 4px rgba(214,199,255,.08);
+}
+.textarea { min-height: 110px; resize: vertical; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.muted { opacity: .75; }
+
+/* ---------- Notices ---------- */
+.adminNotice {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin: 10px 0 14px;
+}
+.adminNotice.error { border-color: rgba(255,140,140,.22); }
+
+/* ---------- Small headings ---------- */
+.h2 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.h3 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
+.adminState { padding: 18px; opacity: .9; }
+
+/* Responsive */
+@media (max-width: 860px) {
+  .adminGrid { grid-template-columns: 1fr; }
+}
