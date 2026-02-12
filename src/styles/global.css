@@ -649,3 +649,143 @@ img{ max-width: 100%; height: auto; display: block; }
 .prose blockquote{ margin:18px 0; padding:12px 14px; border-left:2px solid rgba(214,199,255,.55); background: rgba(255,255,255,.04); border-radius: 12px; color: rgba(255,255,255,.80); }
 .prose img{ border-radius:16px; border:1px solid var(--line); margin:12px 0; }
 .prose hr{ border:0; height:1px; background: var(--line); margin:26px 0; }
+
+/* =========================
+   ADMIN — COMMENTS (pretty)
+========================= */
+
+.adminComments{
+  margin-top: 18px;
+}
+
+.adminCommentsTop{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 14px 0 16px;
+}
+
+/* segmented control */
+.adminSeg{
+  display:inline-flex;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.03);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.adminSegBtn{
+  appearance:none;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,.80);
+  padding: 9px 12px;
+  border-radius: 999px;
+  cursor:pointer;
+  font: inherit;
+  line-height: 1;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.adminSegBtn:hover{
+  background: rgba(255,255,255,.06);
+}
+
+.adminSegBtn.isActive{
+  background: rgba(214,199,255,.12);
+  color: rgba(255,255,255,.92);
+}
+
+/* comment list */
+.adminCommentList{
+  display:grid;
+  gap: 12px;
+}
+
+.adminCommentCard{
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.adminCommentHeader{
+  display:flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items:flex-start;
+}
+
+.adminCommentTitleLine{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adminCommentAuthor{
+  font-weight: 750;
+  letter-spacing: -.01em;
+  display:inline-flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.adminCommentSep{
+  opacity: .5;
+}
+
+.adminCommentPostLink{
+  color: rgba(255,255,255,.86);
+  text-decoration:none;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.adminCommentPostLink:hover{
+  border-bottom-color: rgba(214,199,255,.28);
+}
+
+.adminCommentMeta{
+  margin-top: 6px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+/* status pill */
+.adminStatusPill{
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  opacity: .95;
+  white-space: nowrap;
+}
+
+.adminStatusPill.status-approved{ border-color: rgba(120,255,180,.22); }
+.adminStatusPill.status-pending{ border-color: rgba(255,220,140,.22); }
+.adminStatusPill.status-spam{ border-color: rgba(255,140,140,.22); }
+.adminStatusPill.status-deleted{ opacity: .55; }
+
+.adminCommentBody{
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  white-space: pre-wrap;
+  line-height: 1.7;
+  color: rgba(255,255,255,.88);
+}
+
+.adminCommentActions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

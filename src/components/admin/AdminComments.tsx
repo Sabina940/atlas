@@ -15,6 +15,20 @@ type Row = {
 
 type Filter = "pending" | "approved" | "spam";
 
+function fmt(iso: string) {
+  try {
+    return new Date(iso).toLocaleString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export function AdminComments() {
   const { token, loading } = useAdminToken();
   const [filter, setFilter] = useState<Filter>("pending");
@@ -36,14 +50,12 @@ export function AdminComments() {
           },
         });
 
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(txt || `Request failed: ${res.status}`);
-        }
+        const txt = await res.text();
+        if (!res.ok) throw new Error(txt || `Request failed: ${res.status}`);
 
         const ct = res.headers.get("content-type") || "";
         if (!ct.includes("application/json")) return null;
-        return res.json();
+        return txt ? JSON.parse(txt) : null;
       },
     };
   }, [token]);
@@ -107,8 +119,8 @@ export function AdminComments() {
   if (!token) {
     return (
       <div className="adminState">
-        <h2 className="adminTitle">Not signed in</h2>
-        <p className="adminSub">
+        <h2 className="h2">Not signed in</h2>
+        <p className="sub">
           Go to <a href="/admin/login">/admin/login</a>
         </p>
       </div>
@@ -116,101 +128,110 @@ export function AdminComments() {
   }
 
   return (
-    <>
-      <div className="adminFilters">
-        <button
-          className={`csBtn ghost ${filter === "pending" ? "isActive" : ""}`}
-          onClick={() => setFilter("pending")}
-        >
-          Pending
-        </button>
-        <button
-          className={`csBtn ghost ${filter === "approved" ? "isActive" : ""}`}
-          onClick={() => setFilter("approved")}
-        >
-          Approved
-        </button>
-        <button
-          className={`csBtn ghost ${filter === "spam" ? "isActive" : ""}`}
-          onClick={() => setFilter("spam")}
-        >
-          Spam
+    <div className="adminComments">
+      <div className="adminCommentsTop">
+        <div className="adminSeg" role="tablist" aria-label="Filter comments">
+          <button
+            className={`adminSegBtn ${filter === "pending" ? "isActive" : ""}`}
+            onClick={() => setFilter("pending")}
+            type="button"
+          >
+            Pending
+          </button>
+          <button
+            className={`adminSegBtn ${filter === "approved" ? "isActive" : ""}`}
+            onClick={() => setFilter("approved")}
+            type="button"
+          >
+            Approved
+          </button>
+          <button
+            className={`adminSegBtn ${filter === "spam" ? "isActive" : ""}`}
+            onClick={() => setFilter("spam")}
+            type="button"
+          >
+            Spam
+          </button>
+        </div>
+
+        <button className="btn ghost" onClick={load} type="button">
+          Refresh
         </button>
       </div>
 
-      {err && <p className="adminError">{err}</p>}
+      {err && <div className="adminNotice error">{err}</div>}
 
-      <div className="adminList">
+      <div className="adminCommentList">
         {rows.length === 0 ? (
           <div className="adminEmpty">No comments in “{filter}”.</div>
         ) : (
-          rows.map((r) => (
-            <div key={r.id} className="adminCommentCard">
-              <div className="adminCommentTop">
-                <div className="adminCommentTitle">
-                  <span className="adminAuthor">
-                    {r.author_name}
-                    {r.is_admin_reply ? <span className="adminBadge">admin</span> : null}
-                  </span>
-                  <span className="adminOnPost">· {r.posts?.title ?? "Post"}</span>
+          rows.map((r) => {
+            const isBusy = busyId === r.id;
+
+            return (
+              <div key={r.id} className="adminCommentCard">
+                <div className="adminCommentHeader">
+                  <div className="adminCommentHeadLeft">
+                    <div className="adminCommentTitleLine">
+                      <span className="adminCommentAuthor">
+                        {r.author_name}
+                        {r.is_admin_reply ? <span className="pill pillGood">ADMIN</span> : null}
+                      </span>
+
+                      <span className="adminCommentSep">·</span>
+
+                      {r.posts?.slug ? (
+                        <a className="adminCommentPostLink" href={`/posts/${r.posts.slug}`} target="_blank" rel="noreferrer">
+                          {r.posts?.title ?? "Post"}
+                        </a>
+                      ) : (
+                        <span className="adminCommentPostLink">{r.posts?.title ?? "Post"}</span>
+                      )}
+                    </div>
+
+                    <div className="adminCommentMeta">
+                      <span className="muted">{fmt(r.created_at)}</span>
+                      {r.parent_id ? <span className="pill pillWarn">REPLY</span> : null}
+                    </div>
+                  </div>
+
+                  <span className={`adminStatusPill status-${r.status}`}>{r.status.toUpperCase()}</span>
                 </div>
 
-                <span className={`adminStatusPill status-${r.status}`}>
-                  {r.status.toUpperCase()}
-                </span>
+                <div className="adminCommentBody">{r.body}</div>
+
+                <div className="adminCommentActions">
+                  {r.status !== "approved" && (
+                    <button className="btn primary" disabled={isBusy} onClick={() => setRowStatus(r.id, "approved")} type="button">
+                      Approve
+                    </button>
+                  )}
+
+                  {r.status !== "spam" && (
+                    <button className="btn ghost" disabled={isBusy} onClick={() => setRowStatus(r.id, "spam")} type="button">
+                      Spam
+                    </button>
+                  )}
+
+                  {r.status !== "pending" && (
+                    <button className="btn ghost" disabled={isBusy} onClick={() => setRowStatus(r.id, "pending")} type="button">
+                      Pending
+                    </button>
+                  )}
+
+                  <button className="btn ghost" disabled={isBusy} onClick={() => reply(r)} type="button">
+                    Reply
+                  </button>
+
+                  <button className="btn danger" disabled={isBusy} onClick={() => del(r.id)} type="button">
+                    Delete
+                  </button>
+                </div>
               </div>
-
-              <div className="adminCommentBody">{r.body}</div>
-
-              <div className="adminActions">
-                {r.status !== "approved" && (
-                  <button
-                    className="csBtn"
-                    disabled={busyId === r.id}
-                    onClick={() => setRowStatus(r.id, "approved")}
-                  >
-                    Approve
-                  </button>
-                )}
-
-                {r.status !== "spam" && (
-                  <button
-                    className="csBtn ghost"
-                    disabled={busyId === r.id}
-                    onClick={() => setRowStatus(r.id, "spam")}
-                  >
-                    Spam
-                  </button>
-                )}
-
-                {r.status !== "pending" && (
-                  <button
-                    className="csBtn ghost"
-                    disabled={busyId === r.id}
-                    onClick={() => setRowStatus(r.id, "pending")}
-                  >
-                    Pending
-                  </button>
-                )}
-
-                <button className="csBtn ghost" disabled={busyId === r.id} onClick={() => reply(r)}>
-                  Reply
-                </button>
-
-                <button className="csBtn ghost" disabled={busyId === r.id} onClick={() => del(r.id)}>
-                  Delete
-                </button>
-
-                {r.posts?.slug && (
-                  <a className="csBtn ghost" href={`/posts/${r.posts.slug}`} target="_blank" rel="noreferrer">
-                    Open post
-                  </a>
-                )}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
-    </>
+    </div>
   );
 }
