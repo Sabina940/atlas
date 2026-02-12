@@ -1,4 +1,6 @@
+// src/components/admin/AdminPosts.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import { marked } from "marked";
 import useAdminToken from "./useAdminToken";
 
 type PostStatus = "draft" | "published";
@@ -72,6 +74,9 @@ export function AdminPosts() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("view");
 
+  // preview inside modal (instead of opening public page)
+  const [showPreview, setShowPreview] = useState(false);
+
   const api = useMemo(() => {
     return {
       async req(path: string, init?: RequestInit) {
@@ -83,12 +88,47 @@ export function AdminPosts() {
             "Content-Type": "application/json",
           },
         });
+
         const txt = await res.text();
         if (!res.ok) throw new Error(txt || `Request failed: ${res.status}`);
         return txt ? JSON.parse(txt) : null;
       },
     };
   }, [token]);
+
+    // preview html (async-safe for marked v5+)
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const html = await marked.parse(draft.content_md ?? "");
+        if (!alive) return;
+        setPreviewHtml(typeof html === "string" ? html : String(html));
+      } catch {
+        if (!alive) return;
+        setPreviewHtml("<p>Couldn’t render preview.</p>");
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [draft.content_md]);
+
+  function closeModal() {
+    setModalOpen(false);
+    setMode("view");
+    setShowPreview(false);
+  }
+
+  function openModalView() {
+    setMode("view");
+    setModalOpen(true);
+    setShowPreview(false);
+  }
 
   async function loadList() {
     try {
@@ -119,8 +159,7 @@ export function AdminPosts() {
         content_md: p.content_md ?? "",
       });
 
-      setMode("view");
-      setModalOpen(true);
+      openModalView();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to load post");
     }
@@ -137,9 +176,12 @@ export function AdminPosts() {
   async function save(nextStatus?: PostStatus) {
     setSaving(true);
     try {
+      setErr(null);
+
       const finalStatus = (nextStatus ?? draft.status) as PostStatus;
 
       const payload = {
+        action: "upsert", // matches your Netlify function you pasted earlier
         post: {
           id: activeId ?? undefined,
           title: draft.title,
@@ -149,22 +191,70 @@ export function AdminPosts() {
           tags: tagsToArray(draft.tags),
           status: finalStatus,
           content_md: draft.content_md ?? "",
+          // published_at handled in function
         },
       };
 
       const data = await api.req("admin-posts", {
-        method: "PUT",
+        method: "POST",
         body: JSON.stringify(payload),
       });
 
-      await loadList();
+      const saved: Post | null = data?.post ?? null;
+      if (!saved?.id) throw new Error("Save succeeded but no post returned.");
 
-      // keep modal open and in view mode after save
-      const savedId = data?.post?.id ?? activeId;
-      if (savedId) await loadOne(savedId);
+      // update list locally (no extra fetch)
+      setPosts((prev) => {
+        const next = [...prev];
+        const idx = next.findIndex((x) => x.id === saved.id);
+        if (idx >= 0) next[idx] = saved;
+        else next.unshift(saved);
+        // keep newest first (created_at desc) like your list endpoint
+        next.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+        return next;
+      });
+
+      // sync draft from saved
+      setActiveId(saved.id);
+      setDraft({
+        title: saved.title ?? "",
+        slug: saved.slug ?? "",
+        cover_url: saved.cover_url ?? "",
+        excerpt: saved.excerpt ?? "",
+        tags: saved.tags ?? [],
+        status: saved.status ?? "draft",
+        content_md: saved.content_md ?? "",
+      });
+
       setMode("view");
+      setShowPreview(false);
+      setModalOpen(true);
     } catch (e: any) {
       setErr(e?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setStatus(next: PostStatus) {
+    if (!activeId) return;
+    setSaving(true);
+    try {
+      setErr(null);
+
+      const payload = { action: "setStatus", id: activeId, status: next };
+      await api.req("admin-posts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      // refresh single post state by reloading list+one (simple + reliable)
+      await loadList();
+      await loadOne(activeId);
+      setMode("view");
+      setShowPreview(false);
+    } catch (e: any) {
+      setErr(e?.message ?? "Status update failed");
     } finally {
       setSaving(false);
     }
@@ -176,12 +266,15 @@ export function AdminPosts() {
 
     setSaving(true);
     try {
-      await api.req(`admin-posts?id=${encodeURIComponent(activeId)}`, { method: "DELETE" });
+      setErr(null);
 
+      const payload = { action: "delete", id: activeId };
+      await api.req("admin-posts", { method: "POST", body: JSON.stringify(payload) });
+
+      setPosts((prev) => prev.filter((p) => p.id !== activeId));
       setActiveId(null);
       setDraft(emptyPost());
-      setModalOpen(false);
-      await loadList();
+      closeModal();
     } catch (e: any) {
       setErr(e?.message ?? "Delete failed");
     } finally {
@@ -194,6 +287,7 @@ export function AdminPosts() {
     setDraft(emptyPost());
     setMode("edit");
     setModalOpen(true);
+    setShowPreview(false);
   }
 
   if (loading) return <div className="adminState">Loading…</div>;
@@ -211,7 +305,7 @@ export function AdminPosts() {
 
   return (
     <div className="adminShell">
-      {/* Top row (keep it minimal; let Astro handle the nice page header) */}
+      {/* top bar */}
       <div className="adminTopBar">
         <div className="muted">Signed in as {email}</div>
 
@@ -250,16 +344,11 @@ export function AdminPosts() {
               <div className="adminEmpty">No posts yet.</div>
             ) : (
               posts.map((p) => (
-                <button
-                  key={p.id}
-                  className="postCard"
-                  onClick={() => loadOne(p.id)}
-                  type="button"
-                >
+                <button key={p.id} className="postCard" onClick={() => loadOne(p.id)} type="button">
                   <div className="postCardTop">
-                    <div className="postCardTitle">{p.title || "Untitled"}</div>
+                    <div className="postCardTitle postCardTitle--big">{p.title || "Untitled"}</div>
                     <span className={`pill ${p.status === "published" ? "pillGood" : "pillWarn"}`}>
-                      {p.status}
+                      {p.status.toUpperCase()}
                     </span>
                   </div>
 
@@ -290,21 +379,21 @@ export function AdminPosts() {
             <div className="modalHeader">
               <div>
                 <div className="modalKicker">{activeId ? "Post" : "New post"}</div>
-                <div className="modalTitle">{draft.title || "Untitled"}</div>
+                <div className="modalTitle modalTitle--big">{draft.title || "Untitled"}</div>
               </div>
 
-              <button className="btn ghost" onClick={() => setModalOpen(false)} aria-label="Close">
+              <button className="btn ghost" onClick={closeModal} aria-label="Close">
                 ✕
               </button>
             </div>
 
             <div className="modalBody">
-              {/* VIEW MODE (actions) */}
+              {/* VIEW MODE */}
               {mode === "view" ? (
                 <>
                   <div className="modalRow">
                     <span className={`pill ${draft.status === "published" ? "pillGood" : "pillWarn"}`}>
-                      {draft.status}
+                      {draft.status.toUpperCase()}
                     </span>
                     <span className="muted mono">/posts/{draft.slug || "…"}</span>
                   </div>
@@ -312,22 +401,21 @@ export function AdminPosts() {
                   {draft.excerpt ? <p className="muted">{draft.excerpt}</p> : null}
 
                   <div className="modalActions">
-                    {draft.slug?.trim() && draft.status === "published" && (
-                      <a className="btn ghost" href={`/posts/${draft.slug}`} target="_blank" rel="noreferrer">
-                        Open
-                      </a>
-                    )}
+                    {/* Preview (in-modal) */}
+                    <button className="btn ghost" onClick={() => setShowPreview((v) => !v)}>
+                      {showPreview ? "Hide preview" : "Preview"}
+                    </button>
 
                     <button className="btn" onClick={() => setMode("edit")}>
                       Edit
                     </button>
 
                     {draft.status !== "published" ? (
-                      <button className="btn" onClick={() => save("published")} disabled={saving}>
+                      <button className="btn" onClick={() => setStatus("published")} disabled={saving}>
                         {saving ? "Working…" : "Publish"}
                       </button>
                     ) : (
-                      <button className="btn ghost" onClick={() => save("draft")} disabled={saving}>
+                      <button className="btn ghost" onClick={() => setStatus("draft")} disabled={saving}>
                         {saving ? "Working…" : "Unpublish"}
                       </button>
                     )}
@@ -338,6 +426,19 @@ export function AdminPosts() {
                       </button>
                     ) : null}
                   </div>
+
+                  {/* IN-MODAL PREVIEW */}
+                  {showPreview && (
+                    <div className="adminPreview">
+                      {draft.cover_url ? (
+                        <img className="adminPreviewCover" src={draft.cover_url} alt="" />
+                      ) : null}
+
+                      {draft.excerpt ? <p className="adminPreviewExcerpt">{draft.excerpt}</p> : null}
+
+                      <div className="adminPreviewBody prose" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                    </div>
+                  )}
                 </>
               ) : (
                 /* EDIT MODE */
@@ -419,7 +520,7 @@ export function AdminPosts() {
                         {saving ? "Saving…" : "Save + Publish"}
                       </button>
                     ) : (
-                      <button className="btn ghost" onClick={() => save("draft")} disabled={saving}>
+                      <button className="btn ghost" onClick={() => setStatus("draft")} disabled={saving}>
                         {saving ? "Saving…" : "Unpublish"}
                       </button>
                     )}
@@ -435,7 +536,7 @@ export function AdminPosts() {
             </div>
           </div>
 
-          <button className="modalBackdrop" onClick={() => setModalOpen(false)} aria-label="Close backdrop" />
+          <button className="modalBackdrop" onClick={closeModal} aria-label="Close backdrop" />
         </div>
       )}
     </div>
