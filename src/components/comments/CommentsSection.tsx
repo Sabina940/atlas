@@ -26,7 +26,7 @@ export function CommentsSection({ postId }: { postId: string }) {
   const api = useMemo(() => {
     return {
       async getApproved() {
-        const res = await fetch(`/.netlify/functions/public-comment?post_id=${encodeURIComponent(postId)}`);
+        const res = await fetch(`/.netlify/functions/public-comments?post_id=${encodeURIComponent(postId)}`);
         const txt = await res.text();
         if (!res.ok) throw new Error(txt || `Request failed: ${res.status}`);
         return txt ? JSON.parse(txt) : null;
@@ -87,8 +87,14 @@ export function CommentsSection({ postId }: { postId: string }) {
       setToast({ kind: "ok", msg: "Thanks! Your comment is under review." });
       // don’t reload approved list (it’s pending), but you can if you want:
       // await load();
-    } catch (e: any) {
-      setToast({ kind: "err", msg: e?.message || "Failed to submit comment." });
+    }  catch (e: any) {
+    const raw = String(e?.message || "Failed to submit comment.");
+    try {
+        const parsed = JSON.parse(raw);
+        setToast({ kind: "err", msg: parsed?.error || raw });
+    } catch {
+        setToast({ kind: "err", msg: raw });
+    }
     } finally {
       setSubmitting(false);
     }
