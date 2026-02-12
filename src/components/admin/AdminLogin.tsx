@@ -17,49 +17,56 @@ export function AdminLogin() {
     setLoading(false);
     if (error) return setErr(error.message);
 
-    // send them to the admin dashboard
     window.location.href = "/admin";
   }
 
   return (
-    <div className="cs">
-      <div className="csWrap">
-        <a className="csBack" href="/">← Back</a>
+    <div className="loginPage">
+      <div className="loginCard">
+        <div className="loginTop">
+          <span className="pill">Admin</span>
+          <span className="loginHint muted">Private area</span>
+        </div>
 
-        <div className="csCard">
-          <div className="csTop">
-            <span className="csBadge">Admin</span>
-            <span className="csDot" aria-hidden="true" />
-          </div>
+        <h1 className="loginTitle">Admin Login</h1>
+        <p className="loginSub">Sign in with email and password.</p>
 
-          <h1 className="csTitle">Admin Login</h1>
-          <p className="csSub">Sign in with email + password.</p>
-
-          <form onSubmit={signIn} className="csActions" style={{ gap: 12 }}>
+        <form onSubmit={signIn} className="loginForm">
+          <label className="label">
+            Email
             <input
+              className="field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              placeholder="you@email.com"
               type="email"
+              autoComplete="username"
               required
-              className="csBtn"
-              style={{ flex: 1, minWidth: 260 }}
             />
+          </label>
+
+          <label className="label">
+            Password
             <input
+              className="field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              placeholder="••••••••"
               type="password"
+              autoComplete="current-password"
               required
-              className="csBtn"
-              style={{ flex: 1, minWidth: 260 }}
             />
-            <button className="csBtn" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
+          </label>
 
-          {err && <p style={{ marginTop: 12, color: "#ff8a8a" }}>{err}</p>}
+          {err && <div className="loginError">{err}</div>}
+
+          <button className="btn primary loginSubmit" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+
+        <div className="loginFoot muted">
+          Tip: bookmark <span className="mono">/admin/login</span>
         </div>
       </div>
     </div>

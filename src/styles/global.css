@@ -789,3 +789,71 @@ img{ max-width: 100%; height: auto; display: block; }
   gap: 10px;
   flex-wrap: wrap;
 }
+/* =========================
+   ADMIN — LOGIN
+========================= */
+
+.loginPage{
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 28px 18px 70px;
+}
+
+.loginCard{
+  width: min(520px, 92vw);
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(12,12,16,.92);
+  box-shadow: 0 30px 120px rgba(0,0,0,.55);
+  padding: 16px;
+}
+
+.loginTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.loginTitle{
+  margin: 14px 0 0;
+  font-size: 28px;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+
+.loginSub{
+  margin: 10px 0 0;
+  color: rgba(255,255,255,.72);
+  line-height: 1.6;
+}
+
+.loginForm{
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.loginError{
+  border-radius: 14px;
+  border: 1px solid rgba(255,140,140,.22);
+  background: rgba(255,140,140,.08);
+  padding: 10px 12px;
+  color: rgba(255,210,210,.95);
+}
+
+.loginSubmit{
+  width: 100%;
+  justify-content: center;
+  padding: 12px 14px;
+}
+
+.loginFoot{
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-size: 13px;
+}
