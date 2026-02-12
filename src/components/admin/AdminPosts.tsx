@@ -333,7 +333,7 @@ export function AdminPosts() {
       <div className="adminGrid">
         <div className="adminLeft">
           <div className="adminLeftHeader">
-            <h3 className="h3">Posts</h3>
+            <h1 className="h1">Posts</h1>
             <button className="btn" onClick={startNew}>
               + New
             </button>
