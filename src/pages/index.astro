@@ -1,4 +1,6 @@
 ---
+export const prerender = false;
+
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { supabase } from "../lib/supabaseClient";
 
@@ -15,7 +17,6 @@ const { data: posts, error } = await supabase
   .from("posts")
   .select("id,title,slug,excerpt,cover_url,created_at")
   .eq("status", "published")
-  .order("published_at", { ascending: false })
   .order("created_at", { ascending: false })
   .limit(12);
 

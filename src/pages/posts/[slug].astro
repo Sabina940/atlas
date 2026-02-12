@@ -31,7 +31,6 @@ if (error || !post) return Astro.redirect("/posts");
 
 const p = post as Post;
 
-// Remove the "admin template header" lines if they exist in the markdown
 function stripAdminHeader(md: string) {
   const lines = (md ?? "").split("\n");
   const filtered = lines.filter((line) => {
@@ -43,8 +42,6 @@ function stripAdminHeader(md: string) {
 }
 
 const cleanedMd = stripAdminHeader(p.content_md ?? "");
-
-// Convert markdown -> HTML
 const html = await marked.parse(cleanedMd);
 
 const fmt = (iso: string) =>
@@ -59,7 +56,6 @@ const fmt = (iso: string) =>
   <main class="postPage">
     <header class="postTop">
       <a class="postBack" href="/posts">← All entries</a>
-
       <p class="postDate">{fmt(p.created_at)}</p>
       <h1 class="postTitle">{p.title}</h1>
       {p.excerpt && <p class="postExcerpt">{p.excerpt}</p>}
@@ -71,9 +67,8 @@ const fmt = (iso: string) =>
       </figure>
     )}
 
-    <article class="postContent" set:html={html} />
+    <article class="postContent prose" set:html={html} />
 
-    {/* Comments */}
     <section class="postComments">
       <CommentsSection client:load postId={p.id} />
     </section>
