@@ -452,3 +452,121 @@ a { color: inherit; }
 .prose :is(ul,ol){ padding-left: 1.2em; }
 .prose code{ background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 8px; }
 .prose pre{ background: rgba(0,0,0,.35); padding: 12px; border-radius: 14px; overflow:auto; }
+
+/* ===== Public comments ===== */
+.cWrap{
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+.cHead{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.cTitle{
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -.01em;
+}
+
+.cToast{
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(214,199,255,.20);
+  background: rgba(214,199,255,.08);
+}
+
+.cEmpty{ margin-top: 14px; }
+
+.cList{
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.cCard{
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+.cCard.isAdmin{
+  border-color: rgba(120,255,180,.18);
+  background: rgba(120,255,180,.04);
+}
+
+.cTop{
+  display:flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.cName{ font-weight: 700; display:flex; gap: 10px; align-items:center; }
+.cDate{ font-size: 12px; }
+.cBody{
+  margin-top: 8px;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  color: rgba(255,255,255,.88);
+}
+
+/* modal */
+.cModalOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+.cBackdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(6px);
+}
+.cModal{
+  position: relative;
+  width: min(720px, 92vw);
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(12,12,16,.92);
+  box-shadow: 0 30px 120px rgba(0,0,0,.55);
+  padding: 16px;
+  z-index: 1;
+}
+.cModalHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.cModalKicker{
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.60);
+}
+.cModalTitle{
+  margin-top: 4px;
+  font-size: 20px;
+  letter-spacing: -.01em;
+}
+
+.cForm{
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.cActions{
+  display:flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

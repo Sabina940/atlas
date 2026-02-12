@@ -4,6 +4,7 @@ export const prerender = false;
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { supabase } from "../../lib/supabaseClient";
 import { marked } from "marked";
+import { CommentsSection } from "../../components/comments/CommentsSection";
 
 const { slug } = Astro.params;
 
@@ -11,15 +12,13 @@ type Post = {
   id: string;
   title: string;
   slug: string;
-  content_md: string;      // markdown in DB
+  content_md: string;
   excerpt: string | null;
   cover_url: string | null;
   created_at: string;
 };
 
-if (!slug) {
-  return Astro.redirect("/posts");
-}
+if (!slug) return Astro.redirect("/posts");
 
 const { data: post, error } = await supabase
   .from("posts")
@@ -28,15 +27,25 @@ const { data: post, error } = await supabase
   .eq("status", "published")
   .single();
 
-if (error || !post) {
-  return Astro.redirect("/posts");
-}
+if (error || !post) return Astro.redirect("/posts");
 
 const p = post as Post;
 
-// Convert markdown -> HTML
-const html = await marked.parse(post.content_md ?? "");
+// Remove the "admin template header" lines if they exist in the markdown
+function stripAdminHeader(md: string) {
+  const lines = (md ?? "").split("\n");
+  const filtered = lines.filter((line) => {
+    const t = line.trim();
+    if (!t) return true;
+    return !/^(Title:|Slug:|Tags:|Cover_url:)\s*/i.test(t);
+  });
+  return filtered.join("\n").trim();
+}
 
+const cleanedMd = stripAdminHeader(p.content_md ?? "");
+
+// Convert markdown -> HTML
+const html = await marked.parse(cleanedMd);
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
@@ -47,84 +56,26 @@ const fmt = (iso: string) =>
 ---
 
 <BaseLayout title={`Atlas — ${p.title}`}>
-  <main class="page">
-    <header class="top">
-      <a class="back" href="/posts">← All entries</a>
+  <main class="postPage">
+    <header class="postTop">
+      <a class="postBack" href="/posts">← All entries</a>
 
-      <p class="date">{fmt(p.created_at)}</p>
-      <h1>{p.title}</h1>
-      {p.excerpt && <p class="excerpt">{p.excerpt}</p>}
+      <p class="postDate">{fmt(p.created_at)}</p>
+      <h1 class="postTitle">{p.title}</h1>
+      {p.excerpt && <p class="postExcerpt">{p.excerpt}</p>}
     </header>
 
     {p.cover_url && (
-      <figure class="cover">
+      <figure class="postCover">
         <img src={p.cover_url} alt="" />
       </figure>
     )}
 
-    <article class="content" set:html={html} />
+    <article class="postContent" set:html={html} />
+
+    {/* Comments */}
+    <section class="postComments">
+      <CommentsSection client:load postId={p.id} />
+    </section>
   </main>
-
-  <style>
-    :global(body){ background:#07080b; color:rgba(255,255,255,.92); }
-    .page{ min-height:100svh; padding:28px 18px 70px; max-width:860px; margin:0 auto; }
-    .back{ display:inline-block; color:rgba(255,255,255,.75); text-decoration:none; margin-bottom:14px; }
-    .date{ margin:0 0 10px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.10em; text-transform:uppercase; }
-    h1{ margin:0; font-size:clamp(32px,5vw,56px); line-height:1.02; letter-spacing:-.02em; }
-    .excerpt{ margin:12px 0 0; color:rgba(255,255,255,.72); line-height:1.65; }
-
-    .cover{
-      margin:22px 0 0;
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.02);
-      box-shadow: 0 30px 90px rgba(0,0,0,.45);
-    }
-    .cover img{ width:100%; height:auto; display:block; }
-
-    .content{
-      margin-top:22px;
-      line-height:1.85;
-      color:rgba(255,255,255,.86);
-      font-size: 16px;
-    }
-    .content :global(p){ margin: 0 0 14px; }
-    .content :global(h2){
-      margin: 28px 0 10px;
-      font-size: 22px;
-      letter-spacing: -.01em;
-    }
-    .content :global(h3){
-      margin: 22px 0 10px;
-      font-size: 18px;
-      letter-spacing: -.01em;
-      color: rgba(255,255,255,.90);
-    }
-    .content :global(a){
-      color: rgba(214,199,255,.95);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(214,199,255,.35);
-    }
-    .content :global(blockquote){
-      margin: 18px 0;
-      padding: 12px 14px;
-      border-left: 2px solid rgba(214,199,255,.55);
-      background: rgba(255,255,255,.04);
-      border-radius: 12px;
-      color: rgba(255,255,255,.80);
-    }
-    .content :global(img){
-      max-width: 100%;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      margin: 12px 0;
-    }
-    .content :global(hr){
-      border: 0;
-      height: 1px;
-      background: rgba(255,255,255,.10);
-      margin: 26px 0;
-    }
-  </style>
 </BaseLayout>
