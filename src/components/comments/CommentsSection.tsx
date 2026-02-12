@@ -26,7 +26,7 @@ export function CommentsSection({ postId }: { postId: string }) {
   const api = useMemo(() => {
     return {
       async getApproved() {
-        const res = await fetch(`/.netlify/functions/public-comments?post_id=${encodeURIComponent(postId)}`);
+        const res = await fetch(`/.netlify/functions/public-comment?post_id=${encodeURIComponent(postId)}`);
         const txt = await res.text();
         if (!res.ok) throw new Error(txt || `Request failed: ${res.status}`);
         return txt ? JSON.parse(txt) : null;

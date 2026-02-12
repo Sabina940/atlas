@@ -20,6 +20,9 @@
   --danger:rgba(255,140,140,.95);
 }
 
+/* Always do this first */
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body { height: 100%; }
 
 body{
@@ -452,6 +455,7 @@ img{ max-width: 100%; height: auto; display: block; }
   box-shadow: 0 30px 120px rgba(0,0,0,.55);
   padding:16px;
   z-index:1;
+  overflow: hidden;
 }
 
 .cModalHead{
@@ -480,7 +484,9 @@ img{ max-width: 100%; height: auto; display: block; }
   margin-top:12px;
   display:grid;
   gap:10px;
+  width: 100%;
 }
+.cForm .label { width: 100%; max-width: 100%; }
 
 .cActions{
   display:flex;
@@ -505,6 +511,12 @@ img{ max-width: 100%; height: auto; display: block; }
   box-shadow: 0 0 0 4px rgba(214,199,255,.08);
 }
 .textarea{ min-height:120px; resize: vertical; }
+.cForm .field,
+.cForm .textarea {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
 
 /* =========================
    ADMIN — SHELL / GRID
