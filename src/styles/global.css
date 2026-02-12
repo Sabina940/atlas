@@ -218,3 +218,237 @@ body{
 @media (max-width: 860px) {
   .adminGrid { grid-template-columns: 1fr; }
 }
+
+/* Admin post cards */
+.adminPostTitle {
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.adminPostMeta {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Modal title */
+.adminModalTitle {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* Preview block inside modal */
+.adminPreview {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.adminPreviewCover {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.adminPreviewExcerpt {
+  margin: 12px 0 0;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+/* “prose” styles so preview looks like public post */
+.prose {
+  margin-top: 14px;
+  line-height: 1.85;
+  font-size: 15px;
+  color: rgba(255,255,255,0.88);
+}
+
+.prose p { margin: 0 0 14px; }
+.prose h2 { margin: 26px 0 10px; font-size: 20px; letter-spacing: -0.01em; }
+.prose h3 { margin: 20px 0 10px; font-size: 17px; letter-spacing: -0.01em; }
+.prose a {
+  color: rgba(214,199,255,.95);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(214,199,255,.35);
+}
+.prose blockquote {
+  margin: 18px 0;
+  padding: 12px 14px;
+  border-left: 2px solid rgba(214,199,255,.55);
+  background: rgba(255,255,255,.04);
+  border-radius: 12px;
+  color: rgba(255,255,255,.80);
+}
+.prose img {
+  max-width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  margin: 12px 0;
+}
+.prose hr {
+  border: 0;
+  height: 1px;
+  background: rgba(255,255,255,.10);
+  margin: 26px 0;
+}
+
+/* ===== Base ===== */
+:root{
+  --bg:#07080b;
+  --fg:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.70);
+  --line:rgba(255,255,255,.10);
+  --card:rgba(255,255,255,.03);
+  --card2:rgba(255,255,255,.05);
+}
+
+html, body { height:100%; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+
+a { color: inherit; }
+.muted{ color: var(--muted); }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.dot{ opacity:.5; padding: 0 6px; }
+
+/* ===== Home ===== */
+.atlasHome{
+  min-height:100svh;
+  padding:28px 18px 60px;
+  max-width:1100px;
+  margin:0 auto;
+}
+.hero{ padding:10px 0 22px; }
+.kicker{
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.6);
+  font-size:12px;
+  margin:0 0 10px;
+}
+.atlasHome h1{
+  margin:0;
+  font-size:clamp(34px,5vw,56px);
+  line-height:1.02;
+  letter-spacing:-.02em;
+}
+.sub{ margin:12px 0 0; color:rgba(255,255,255,.72); max-width:65ch; line-height:1.6; }
+.nav{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+
+.chip{
+  display:inline-flex;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  text-decoration:none;
+}
+.chip.ghost{ background:rgba(255,255,255,.03); }
+
+.error{ margin:18px 0; color:rgba(255,140,140,.95); }
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap:14px;
+  margin-top:10px;
+}
+.card{
+  grid-column: span 12;
+  display:grid;
+  grid-template-columns: 160px 1fr;
+  gap:14px;
+  padding:12px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--card);
+  text-decoration:none;
+  transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
+}
+.card:hover{
+  transform: translateY(-2px);
+  background: var(--card2);
+  border-color: rgba(214,199,255,.22);
+}
+.thumb{ border-radius:14px; overflow:hidden; border:1px solid var(--line); background:rgba(255,255,255,.02); }
+.thumb img{ width:100%; height:110px; object-fit:cover; display:block; }
+.thumbPh{ height:110px; }
+.meta{ align-self:center; }
+.date{ margin:0 0 6px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+.card h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
+.excerpt{ margin:8px 0 0; color:rgba(255,255,255,.70); line-height:1.55; }
+
+@media (min-width: 760px){
+  .card{ grid-column: span 6; grid-template-columns: 1fr; }
+  .thumb img, .thumbPh{ height:180px; }
+}
+@media (min-width: 1040px){
+  .card{ grid-column: span 4; }
+}
+
+/* ===== Entries list ===== */
+.atlasEntries{
+  min-height:100svh;
+  padding:28px 18px 60px;
+  max-width:980px;
+  margin:0 auto;
+}
+.back{ display:inline-block; color:rgba(255,255,255,.75); text-decoration:none; margin-bottom:14px; }
+.atlasEntries h1{ margin:0; font-size:clamp(28px,4vw,44px); letter-spacing:-.02em; }
+.list{ display:grid; gap:12px; margin-top:18px; }
+
+.row{
+  display:grid;
+  grid-template-columns: 140px 1fr;
+  gap:14px;
+  padding:12px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--card);
+  text-decoration:none;
+  transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
+}
+.row:hover{ transform: translateY(-2px); background:var(--card2); border-color: rgba(214,199,255,.22); }
+.row .thumb img{ height:96px; }
+.row .thumbPh{ height:96px; }
+@media (max-width: 560px){
+  .row{ grid-template-columns: 1fr; }
+  .row .thumb img, .row .thumbPh{ height:180px; }
+}
+
+/* ===== Admin: add the missing bits for your new UI ===== */
+.postCardTitle--big{ font-size: 15.5px; font-weight: 650; letter-spacing:-.01em; }
+.modalTitle--big{ font-size: 22px; font-weight: 700; letter-spacing:-.02em; }
+
+/* Preview block */
+.adminPreview{
+  margin-top:14px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.03);
+  overflow:hidden;
+}
+.adminPreviewCover{ width:100%; height:220px; object-fit:cover; display:block; }
+.adminPreviewExcerpt{ margin:0; padding:12px 14px; color:rgba(255,255,255,.72); border-bottom:1px solid rgba(255,255,255,.10); }
+.adminPreviewBody{ padding:14px; }
+
+/* optional “prose” defaults for markdown */
+.prose :is(h1,h2,h3){ margin: 0.8em 0 0.4em; }
+.prose p{ margin: 0.6em 0; line-height: 1.7; color: rgba(255,255,255,.86); }
+.prose a{ text-decoration: underline; }
+.prose :is(ul,ol){ padding-left: 1.2em; }
+.prose code{ background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 8px; }
+.prose pre{ background: rgba(0,0,0,.35); padding: 12px; border-radius: 14px; overflow:auto; }

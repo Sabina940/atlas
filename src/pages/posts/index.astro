@@ -15,6 +15,7 @@ const { data: posts, error } = await supabase
   .from("posts")
   .select("id,title,slug,excerpt,cover_url,created_at")
   .eq("status", "published")
+  .order("published_at", { ascending: false })
   .order("created_at", { ascending: false });
 
 const list = (posts ?? []) as Post[];
@@ -24,7 +25,7 @@ const fmt = (iso: string) =>
 ---
 
 <BaseLayout title="Atlas — Entries">
-  <main class="atlas">
+  <main class="atlasEntries">
     <header class="head">
       <a class="back" href="/">← Back</a>
       <h1>All entries</h1>
@@ -48,41 +49,4 @@ const fmt = (iso: string) =>
       ))}
     </section>
   </main>
-
-  <style>
-    :global(body){ background:#07080b; color:rgba(255,255,255,.92); }
-    .atlas{ min-height:100svh; padding:28px 18px 60px; max-width:980px; margin:0 auto; }
-    .back{ display:inline-block; color:rgba(255,255,255,.75); text-decoration:none; margin-bottom:14px; }
-    h1{ margin:0; font-size:clamp(28px,4vw,44px); letter-spacing:-.02em; }
-    .sub{ margin:10px 0 0; color:rgba(255,255,255,.70); line-height:1.6; }
-    .error{ margin:18px 0; color:rgba(255,140,140,.95); }
-
-    .list{ display:grid; gap:12px; margin-top:18px; }
-    .row{
-      display:grid;
-      grid-template-columns: 140px 1fr;
-      gap:14px;
-      padding:12px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.03);
-      text-decoration:none;
-      color:inherit;
-      transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
-    }
-    .row:hover{ transform: translateY(-2px); background:rgba(255,255,255,.05); border-color: rgba(214,199,255,.22); }
-
-    .thumb{ border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.02); }
-    .thumb img{ width:100%; height:96px; object-fit:cover; display:block; }
-    .thumbPh{ height:96px; }
-
-    .date{ margin:0 0 6px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
-    h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
-    .excerpt{ margin:8px 0 0; color:rgba(255,255,255,.70); line-height:1.55; }
-
-    @media (max-width: 560px){
-      .row{ grid-template-columns: 1fr; }
-      .thumb img, .thumbPh{ height:180px; }
-    }
-  </style>
 </BaseLayout>
