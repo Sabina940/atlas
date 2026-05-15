@@ -2,47 +2,12 @@ import type { Handler } from "@netlify/functions";
 import { supabaseService } from "../../src/lib/supabaseServer";
 import { parseNote } from "../../src/lib/parseNote";
 
-const BUCKET = "post-images";
-
-type ImageInput = {
-  name?: string;
-  data: string; // base64-encoded image
-};
-
-async function uploadImages(
-  db: ReturnType<typeof supabaseService>,
-  slug: string,
-  images: ImageInput[]
-): Promise<string[]> {
-  const urls: string[] = [];
-
-  for (let i = 0; i < images.length; i++) {
-    const img = images[i];
-    if (!img?.data) continue;
-
-    try {
-      const buffer = Buffer.from(img.data, "base64");
-      const ext  = (img.name?.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-      const path = `${slug}/${Date.now()}-${i}.${ext || "jpg"}`;
-
-      const { error } = await db.storage
-        .from(BUCKET)
-        .upload(path, buffer, { contentType: mime, upsert: true });
-
-      if (error) {
-        console.error(`Image ${i} upload error:`, error.message);
-        continue;
-      }
-
-      const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(path);
-      if (urlData?.publicUrl) urls.push(urlData.publicUrl);
-    } catch (e: any) {
-      console.error(`Image ${i} unexpected error:`, e?.message);
-    }
-  }
-
-  return urls;
+function extractGalleryBlock(md: string): string {
+  const div = md.match(/\n\n<div class="gallery">[\s\S]*?<\/div>\s*$/);
+  if (div) return div[0];
+  const single = md.match(/\n\n!\[\]\([^)]+\)\s*$/);
+  if (single) return single[0];
+  return "";
 }
 
 export const handler: Handler = async (event) => {
@@ -54,15 +19,11 @@ export const handler: Handler = async (event) => {
 
     const contentType = event.headers["content-type"] || event.headers["Content-Type"] || "";
     let raw = event.body || "";
-    let images: ImageInput[] = [];
 
     if (contentType.includes("application/json")) {
       try {
         const parsed = JSON.parse(raw);
-        raw = String(parsed?.raw ?? "");
-        if (Array.isArray(parsed?.images)) {
-          images = parsed.images as ImageInput[];
-        }
+        raw = String(parsed?.raw ?? parsed ?? "");
       } catch {
         // leave raw as-is
       }
@@ -75,43 +36,33 @@ export const handler: Handler = async (event) => {
 
     const db = supabaseService();
 
-    // Upload any attached images
-    let imageUrls: string[] = [];
-    if (images.length > 0) {
-      imageUrls = await uploadImages(db, note.slug, images);
-    }
+    // Preserve any gallery block already added via admin upload
+    const { data: existing } = await db
+      .from("posts")
+      .select("content_md, cover_url")
+      .eq("slug", note.slug)
+      .maybeSingle();
 
-    // First uploaded image → cover (unless Cover: is set in the note headers)
-    const cover_url = note.cover_url ?? (imageUrls[0] ?? null);
+    const galleryBlock = extractGalleryBlock(existing?.content_md ?? "");
+    const content_md = note.content_md.trim() + galleryBlock;
+    const cover_url = note.cover_url ?? existing?.cover_url ?? null;
 
-    // Remaining images go into the post body as a gallery
-    // If cover was set via the note header, all images go to gallery; otherwise skip first (it's the cover)
-    const galleryUrls = note.cover_url ? imageUrls : imageUrls.slice(1);
-
-    let content_md = note.content_md;
-    if (galleryUrls.length === 1) {
-      content_md = content_md.trim() + `\n\n![](${galleryUrls[0]})`;
-    } else if (galleryUrls.length > 1) {
-      const imgs = galleryUrls.map((url) => `<img src="${url}" alt="" />`).join("\n");
-      content_md = content_md.trim() + `\n\n<div class="gallery">\n${imgs}\n</div>`;
-    }
+    const upsertData: Record<string, unknown> = {
+      title:      note.title,
+      slug:       note.slug,
+      content_md,
+      excerpt:    note.excerpt,
+      tags:       note.tags,
+      category:   note.category,
+      rating:     note.rating,
+      cover_url,
+      status:     "draft",
+      updated_at: new Date().toISOString(),
+    };
 
     const { data, error } = await db
       .from("posts")
-      .upsert(
-        {
-          title:      note.title,
-          slug:       note.slug,
-          content_md,
-          tags:       note.tags,
-          cover_url,
-          category:   note.category,
-          rating:     note.rating,
-          status:     "draft",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "slug" }
-      )
+      .upsert(upsertData, { onConflict: "slug" })
       .select("id, slug")
       .single();
 
@@ -119,13 +70,7 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        ok: true,
-        post: data,
-        images_uploaded: imageUrls.length,
-        debug_images_received: images.length,
-        debug_first_data_len: images[0]?.data?.length ?? 0,
-      }),
+      body: JSON.stringify({ ok: true, post: data }),
       headers: { "content-type": "application/json" },
     };
   } catch (e: any) {

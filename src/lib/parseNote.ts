@@ -7,6 +7,7 @@ export function parseNote(raw: string) {
 
   const title     = get("Title") || "Untitled";
   const slug      = get("Slug");
+  const excerpt   = get("Excerpt") || null;
   const category  = get("Category") || null;
   const ratingRaw = get("Rating");
   const rating    = ratingRaw ? Math.min(5, Math.max(1, parseFloat(ratingRaw))) : null;
@@ -26,6 +27,7 @@ export function parseNote(raw: string) {
   return {
     title,
     slug,
+    excerpt,
     tags,
     cover_url,
     category,

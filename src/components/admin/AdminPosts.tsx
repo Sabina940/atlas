@@ -91,6 +91,28 @@ function Stars({ rating }: { rating: number | null }) {
   );
 }
 
+function parseGalleryUrls(md: string): string[] {
+  const divMatch = md.match(/<div class="gallery">([\s\S]*?)<\/div>/);
+  if (divMatch) return Array.from(divMatch[1].matchAll(/src="([^"]+)"/g)).map((m) => m[1]);
+  const single = md.match(/\n\n!\[\]\(([^)]+)\)\s*$/);
+  if (single) return [single[1]];
+  return [];
+}
+
+function contentWithoutGallery(md: string): string {
+  return md
+    .replace(/\n\n<div class="gallery">[\s\S]*?<\/div>\s*$/, "")
+    .replace(/\n\n!\[\]\([^)]+\)\s*$/, "")
+    .trim();
+}
+
+function buildGalleryHtml(urls: string[]): string {
+  if (urls.length === 0) return "";
+  if (urls.length === 1) return `\n\n![](${urls[0]})`;
+  const imgs = urls.map((u) => `<img src="${u}" alt="" />`).join("\n");
+  return `\n\n<div class="gallery">\n${imgs}\n</div>`;
+}
+
 export function AdminPosts() {
   const { token, email, loading, logout } = useAdminToken();
 
@@ -100,6 +122,9 @@ export function AdminPosts() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftPost>(emptyPost());
   const [saving, setSaving] = useState(false);
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("view");
@@ -160,6 +185,7 @@ export function AdminPosts() {
       if (!p?.id) throw new Error("Post not found");
 
       setActiveId(p.id);
+      setGalleryUrls(parseGalleryUrls(p.content_md ?? ""));
       setDraft({
         title: p.title ?? "",
         slug: p.slug ?? "",
@@ -169,7 +195,7 @@ export function AdminPosts() {
         category: p.category ?? "",
         rating: p.rating !== null && p.rating !== undefined ? String(p.rating) : "",
         status: p.status ?? "draft",
-        content_md: p.content_md ?? "",
+        content_md: contentWithoutGallery(p.content_md ?? ""),
       });
 
       openModalView();
@@ -184,12 +210,59 @@ export function AdminPosts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  async function uploadImageFile(file: File): Promise<string> {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch("/.netlify/functions/admin-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+      body: JSON.stringify({ slug: draft.slug || "uploads", filename: file.name, data: base64, mime: file.type }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).url as string;
+  }
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      setDraft((d) => ({ ...d, cover_url: url }));
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Cover upload failed");
+    } finally {
+      setCoverUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleGalleryUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setGalleryUploading(true);
+    try {
+      const urls = await Promise.all(files.map(uploadImageFile));
+      setGalleryUrls((prev) => [...prev, ...urls]);
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Gallery upload failed");
+    } finally {
+      setGalleryUploading(false);
+      e.target.value = "";
+    }
+  }
+
   async function save(nextStatus?: PostStatus) {
     setSaving(true);
     try {
       setErr(null);
       const finalStatus = (nextStatus ?? draft.status) as PostStatus;
       const ratingNum = draft.rating ? parseFloat(draft.rating) : null;
+      const fullContent = contentWithoutGallery(draft.content_md ?? "") + buildGalleryHtml(galleryUrls);
 
       const payload = {
         action: "upsert",
@@ -203,7 +276,7 @@ export function AdminPosts() {
           category: draft.category || null,
           rating: ratingNum !== null && !isNaN(ratingNum) ? Math.min(5, Math.max(1, ratingNum)) : null,
           status: finalStatus,
-          content_md: draft.content_md ?? "",
+          content_md: fullContent,
         },
       };
 
@@ -227,6 +300,7 @@ export function AdminPosts() {
       });
 
       setActiveId(saved.id);
+      setGalleryUrls(parseGalleryUrls(saved.content_md ?? ""));
       setDraft({
         title: saved.title ?? "",
         slug: saved.slug ?? "",
@@ -236,7 +310,7 @@ export function AdminPosts() {
         category: saved.category ?? "",
         rating: saved.rating !== null && saved.rating !== undefined ? String(saved.rating) : "",
         status: saved.status ?? "draft",
-        content_md: saved.content_md ?? "",
+        content_md: contentWithoutGallery(saved.content_md ?? ""),
       });
 
       setMode("view");
@@ -293,6 +367,7 @@ export function AdminPosts() {
   function startNew() {
     setActiveId(null);
     setDraft(emptyPost());
+    setGalleryUrls([]);
     setMode("edit");
     setModalOpen(true);
     setShowPreview(false);
@@ -472,15 +547,37 @@ export function AdminPosts() {
                       />
                     </label>
 
-                    <label className="label">
-                      Cover URL (optional)
-                      <input
-                        className="field"
-                        value={draft.cover_url ?? ""}
-                        onChange={(e) => setDraft((d) => ({ ...d, cover_url: e.target.value }))}
-                        placeholder="https://…"
-                      />
-                    </label>
+                    <div className="label">
+                      Cover Photo
+                      <div className="imgUploadRow">
+                        {draft.cover_url && (
+                          <div className="imgThumb">
+                            <img src={draft.cover_url} alt="" />
+                            <button type="button" className="imgRemove" onClick={() => setDraft((d) => ({ ...d, cover_url: "" }))}>✕</button>
+                          </div>
+                        )}
+                        <label className="btn ghost imgUploadBtn">
+                          {coverUploading ? "Uploading…" : draft.cover_url ? "Replace" : "Upload cover"}
+                          <input type="file" accept="image/*" hidden disabled={coverUploading} onChange={handleCoverUpload} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="label">
+                      Gallery
+                      <div className="imgUploadRow">
+                        {galleryUrls.map((url, i) => (
+                          <div key={i} className="imgThumb">
+                            <img src={url} alt="" />
+                            <button type="button" className="imgRemove" onClick={() => setGalleryUrls((p) => p.filter((_, j) => j !== i))}>✕</button>
+                          </div>
+                        ))}
+                        <label className="btn ghost imgUploadBtn">
+                          {galleryUploading ? "Uploading…" : "+ Add photos"}
+                          <input type="file" accept="image/*" multiple hidden disabled={galleryUploading} onChange={handleGalleryUpload} />
+                        </label>
+                      </div>
+                    </div>
 
                     <label className="label">
                       Tags (comma-separated)
