@@ -119,7 +119,13 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, post: data, images_uploaded: imageUrls.length }),
+      body: JSON.stringify({
+        ok: true,
+        post: data,
+        images_uploaded: imageUrls.length,
+        debug_images_received: images.length,
+        debug_first_data_len: images[0]?.data?.length ?? 0,
+      }),
       headers: { "content-type": "application/json" },
     };
   } catch (e: any) {
