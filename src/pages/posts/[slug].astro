@@ -3,7 +3,16 @@ export const prerender = false;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { supabase } from "../../lib/supabaseClient";
-import { marked } from "marked";
+import { marked, Renderer } from "marked";
+
+// Open external links in a new tab
+const renderer = new Renderer();
+renderer.link = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+  const isExternal = href?.startsWith("http");
+  const titleAttr = title ? ` title="${title}"` : "";
+  const target = isExternal ? ` target="_blank" rel="noopener noreferrer"` : "";
+  return `<a href="${href}"${titleAttr}${target}>${text}</a>`;
+};
 import { CommentsSection } from "../../components/comments/CommentsSection";
 import { getCategory } from "../../lib/categories";
 
@@ -46,7 +55,7 @@ function stripAdminHeader(md: string) {
 }
 
 const cleanedMd = stripAdminHeader(p.content_md ?? "");
-const html = await marked.parse(cleanedMd);
+const html = await marked.parse(cleanedMd, { renderer });
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {

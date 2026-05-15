@@ -81,14 +81,19 @@ export const handler: Handler = async (event) => {
       imageUrls = await uploadImages(db, note.slug, images);
     }
 
-    // First uploaded image → cover photo (only if Cover: not set in the note)
+    // First uploaded image → cover (unless Cover: is set in the note headers)
     const cover_url = note.cover_url ?? (imageUrls[0] ?? null);
 
-    // All uploaded images are also embedded in the post body
+    // Remaining images go into the post body as a gallery
+    // If cover was set via the note header, all images go to gallery; otherwise skip first (it's the cover)
+    const galleryUrls = note.cover_url ? imageUrls : imageUrls.slice(1);
+
     let content_md = note.content_md;
-    if (imageUrls.length > 0) {
-      const imgBlock = imageUrls.map((url) => `![](${url})`).join("\n\n");
-      content_md = content_md.trim() + "\n\n" + imgBlock;
+    if (galleryUrls.length === 1) {
+      content_md = content_md.trim() + `\n\n![](${galleryUrls[0]})`;
+    } else if (galleryUrls.length > 1) {
+      const imgs = galleryUrls.map((url) => `<img src="${url}" alt="" />`).join("\n");
+      content_md = content_md.trim() + `\n\n<div class="gallery">\n${imgs}\n</div>`;
     }
 
     const { data, error } = await db

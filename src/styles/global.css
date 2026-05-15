@@ -605,6 +605,25 @@ img { max-width: 100%; height: auto; display: block; }
   margin: 16px 0;
 }
 .postContent hr { border: 0; height: 1px; background: var(--line); margin: 34px 0; }
+
+.postContent .gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 24px 0;
+}
+.postContent .gallery img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .postContent .gallery { grid-template-columns: 1fr; }
+  .postContent .gallery img { height: 200px; }
+}
 .postContent code {
   background: rgba(255,255,255,.06);
   padding: 2px 7px;
