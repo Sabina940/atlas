@@ -5,6 +5,15 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { supabase } from "../../lib/supabaseClient";
 import { CATEGORIES, CATEGORY_KEYS, getCategory } from "../../lib/categories";
 
+const { cat } = Astro.params;
+
+if (!cat || !CATEGORY_KEYS.includes(cat as any)) {
+  return Astro.redirect("/posts");
+}
+
+const catKey = cat as keyof typeof CATEGORIES;
+const catDef = CATEGORIES[catKey];
+
 type Post = {
   id: string;
   title: string;
@@ -16,19 +25,13 @@ type Post = {
   created_at: string;
 };
 
-const activeCat = Astro.url.searchParams.get("category") ?? "";
-
-let query = supabase
+const { data: posts, error } = await supabase
   .from("posts")
   .select("id,title,slug,excerpt,cover_url,category,rating,created_at")
   .eq("status", "published")
+  .eq("category", catKey)
   .order("created_at", { ascending: false });
 
-if (activeCat && CATEGORY_KEYS.includes(activeCat as any)) {
-  query = query.eq("category", activeCat);
-}
-
-const { data: posts, error } = await query;
 const list = (posts ?? []) as Post[];
 
 const fmt = (iso: string) =>
@@ -39,37 +42,32 @@ function renderStars(rating: number | null) {
   const filled = Math.round(Math.max(1, Math.min(5, rating)));
   return Array.from({ length: 5 }, (_, i) => i < filled);
 }
-
-const pageTitle = activeCat
-  ? `${CATEGORIES[activeCat as keyof typeof CATEGORIES]?.label ?? "Reviews"} — Atlas`
-  : "All Reviews — Atlas";
 ---
 
-<BaseLayout title={pageTitle} description="Browse all reviews — cafes, campsites, countries & more.">
+<BaseLayout
+  title={`${catDef.label} — Atlas`}
+  description={`Reviews of ${catDef.label.toLowerCase()} — honest notes from the road.`}
+>
   <main class="pageWrap">
     <header class="pageHero">
-      <a class="pageHeroBack" href="/">← Home</a>
-      <h1 class="pageHeroTitle">All Reviews</h1>
-      <p class="pageHeroSub">Everything published so far.</p>
+      <a class="pageHeroBack" href="/posts">← All Reviews</a>
+
+      <div class="pageHeroEyebrow">
+        <span class="catBadge" data-cat={catKey}>{catDef.icon} {catDef.label}</span>
+      </div>
+
+      <h1 class="pageHeroTitle">{catDef.label}</h1>
+      <p class="pageHeroSub">
+        {list.length} review{list.length !== 1 ? "s" : ""} published.
+      </p>
     </header>
 
-    <nav class="catFilterRow" aria-label="Filter by category">
-      <a
-        class={`catChip${!activeCat ? " active" : ""}`}
-        href="/posts"
-        style="--cc:rgba(255,255,255,.75);--cb:rgba(255,255,255,.06);--cd:rgba(255,255,255,.14)"
-      >
-        All
-      </a>
-      {CATEGORY_KEYS.map((key) => {
-        const cat = CATEGORIES[key];
+    <nav class="catFilterRow" aria-label="All categories">
+      {CATEGORY_KEYS.filter((k) => k !== catKey).map((key) => {
+        const c = CATEGORIES[key];
         return (
-          <a
-            class={`catChip${activeCat === key ? " active" : ""}`}
-            href={`/posts?category=${key}`}
-            data-cat={key}
-          >
-            {cat.icon} {cat.label}
+          <a class="catChip" href={`/category/${key}`} data-cat={key}>
+            {c.icon} {c.label}
           </a>
         );
       })}
@@ -80,20 +78,15 @@ const pageTitle = activeCat
     {list.length > 0 && (
       <div class="grid">
         {list.map((p) => {
-          const cat = getCategory(p.category);
+          const pcat = getCategory(p.category);
           const stars = renderStars(p.rating);
           return (
             <a class="revCard" href={`/posts/${p.slug}`}>
               <div class="revCardImg">
                 {p.cover_url
                   ? <img src={p.cover_url} alt="" loading="lazy" />
-                  : <div class="revCardImgPh">{cat?.icon ?? "✦"}</div>
+                  : <div class="revCardImgPh">{pcat?.icon ?? catDef.icon}</div>
                 }
-                {cat && (
-                  <span class="catBadge revCardBadge" data-cat={p.category}>
-                    {cat.icon} {cat.label}
-                  </span>
-                )}
               </div>
               <div class="revCardBody">
                 <h2 class="revCardTitle">{p.title}</h2>
@@ -117,10 +110,8 @@ const pageTitle = activeCat
 
     {list.length === 0 && !error && (
       <div class="emptyState">
-        <div class="emptyStateIcon">
-          {activeCat ? CATEGORIES[activeCat as keyof typeof CATEGORIES]?.icon : "✦"}
-        </div>
-        <p class="emptyStateText">No reviews here yet.</p>
+        <div class="emptyStateIcon">{catDef.icon}</div>
+        <p class="emptyStateText">No {catDef.label.toLowerCase()} reviews yet.</p>
       </div>
     )}
   </main>

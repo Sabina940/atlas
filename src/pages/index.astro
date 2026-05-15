@@ -3,6 +3,7 @@ export const prerender = false;
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { supabase } from "../lib/supabaseClient";
+import { CATEGORIES, CATEGORY_KEYS, getCategory } from "../lib/categories";
 
 type Post = {
   id: string;
@@ -10,12 +11,14 @@ type Post = {
   slug: string;
   excerpt: string | null;
   cover_url: string | null;
+  category: string | null;
+  rating: number | null;
   created_at: string;
 };
 
 const { data: posts, error } = await supabase
   .from("posts")
-  .select("id,title,slug,excerpt,cover_url,created_at")
+  .select("id,title,slug,excerpt,cover_url,category,rating,created_at")
   .eq("status", "published")
   .order("created_at", { ascending: false })
   .limit(12);
@@ -24,35 +27,87 @@ const list = (posts ?? []) as Post[];
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
+
+function renderStars(rating: number | null) {
+  if (!rating) return null;
+  const filled = Math.round(Math.max(1, Math.min(5, rating)));
+  return Array.from({ length: 5 }, (_, i) => i < filled);
+}
 ---
 
-<BaseLayout title="Atlas">
+<BaseLayout title="Atlas — Reviews">
   <main class="atlas">
     <header class="hero">
       <p class="kicker">ATLAS</p>
-      <h1>Travel notes, camps, routes & mini-guides</h1>
-      <p class="sub">A photographic log — fast to browse, easy to publish.</p>
+      <h1>Places worth <em>remembering</em></h1>
+      <p class="sub">
+        Honest notes from the road — cafes, campsites, countries & everything in between.
+      </p>
 
-      <nav class="nav">
-        <a class="chip" href="/posts">All entries</a>
+      <nav class="catRow" aria-label="Browse by category">
+        {CATEGORY_KEYS.map((key) => {
+          const cat = CATEGORIES[key];
+          return (
+            <a class="catChip" href={`/category/${key}`} data-cat={key}>
+              {cat.icon} {cat.label}
+            </a>
+          );
+        })}
       </nav>
     </header>
 
-    {error && <p class="error">Couldn’t load posts. Check Supabase connection.</p>}
+    {error && <p class="error">Couldn't load reviews. Check Supabase connection.</p>}
 
-    <section class="grid" aria-label="Latest entries">
-      {list.map((p) => (
-        <a class="card" href={`/posts/${p.slug}`}>
-          <div class="thumb">
-            {p.cover_url ? <img src={p.cover_url} alt="" loading="lazy" /> : <div class="thumbPh" />}
-          </div>
-          <div class="meta">
-            <p class="date">{fmt(p.created_at)}</p>
-            <h2>{p.title}</h2>
-            {p.excerpt && <p class="excerpt">{p.excerpt}</p>}
-          </div>
-        </a>
-      ))}
-    </section>
+    {list.length > 0 && (
+      <section aria-label="Latest reviews">
+        <div class="sectionHead">
+          <h2 class="sectionTitle">Latest Reviews</h2>
+          <a class="sectionLink" href="/posts">View all →</a>
+        </div>
+
+        <div class="grid">
+          {list.map((p) => {
+            const cat = getCategory(p.category);
+            const stars = renderStars(p.rating);
+            return (
+              <a class="revCard" href={`/posts/${p.slug}`}>
+                <div class="revCardImg">
+                  {p.cover_url
+                    ? <img src={p.cover_url} alt="" loading="lazy" />
+                    : <div class="revCardImgPh">{cat?.icon ?? "✦"}</div>
+                  }
+                  {cat && (
+                    <span class="catBadge revCardBadge" data-cat={p.category}>
+                      {cat.icon} {cat.label}
+                    </span>
+                  )}
+                </div>
+                <div class="revCardBody">
+                  <h3 class="revCardTitle">{p.title}</h3>
+                  {stars && (
+                    <div class="stars" aria-label={`${p.rating} out of 5`}>
+                      {stars.map((on) => (
+                        <span class={on ? "star on" : "star"}>★</span>
+                      ))}
+                    </div>
+                  )}
+                  {p.excerpt && <p class="revCardExcerpt">{p.excerpt}</p>}
+                  <div class="revCardFoot">
+                    <span class="revCardDate">{fmt(p.created_at)}</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </section>
+    )}
+
+    {list.length === 0 && !error && (
+      <div class="emptyState">
+        <div class="emptyStateIcon">✦</div>
+        <p class="emptyStateText">No reviews published yet.</p>
+      </div>
+    )}
   </main>
 </BaseLayout>

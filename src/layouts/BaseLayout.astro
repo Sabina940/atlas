@@ -1,22 +1,23 @@
 ---
-
-
 import "../styles/global.css";
+import { CATEGORIES, CATEGORY_KEYS } from "../lib/categories";
 
 type Props = {
   title?: string;
   description?: string;
   canonical?: string;
-  ogImage?: string; // absolute URL
-  noIndex?: boolean; // for /admin pages
+  ogImage?: string;
+  noIndex?: boolean;
+  noHeader?: boolean;
 };
 
 const {
   title = "Atlas",
-  description = "Travel notes, camps, routes & mini-guides.",
+  description = "Honest reviews of cafes, campsites, countries & more.",
   canonical,
   ogImage,
   noIndex = false,
+  noHeader = false,
 } = Astro.props as Props;
 
 const siteUrl =
@@ -63,9 +64,38 @@ const themeColor = "#07080b";
     <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png" />
     <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#07080b" />
     <link rel="manifest" href="/favicon/site.webmanifest" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
+    {!noHeader && (
+      <header class="siteHeader">
+        <a class="siteLogo" href="/">
+          <span class="siteLogoMark" aria-hidden="true">A</span>
+          ATLAS
+        </a>
+        <nav class="siteHeaderNav" aria-label="Site navigation">
+          <a class="siteNavLink" href="/posts">All Reviews</a>
+          {CATEGORY_KEYS.map((key) => (
+            <a
+              class="siteNavLink"
+              href={`/category/${key}`}
+              style="display:none"
+              data-cat-nav
+            >
+              {CATEGORIES[key].icon} {CATEGORIES[key].label}
+            </a>
+          ))}
+        </nav>
+      </header>
+    )}
     <main id="content">
       <slot />
     </main>

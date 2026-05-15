@@ -5,6 +5,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { supabase } from "../../lib/supabaseClient";
 import { marked } from "marked";
 import { CommentsSection } from "../../components/comments/CommentsSection";
+import { getCategory } from "../../lib/categories";
 
 const { slug } = Astro.params;
 
@@ -15,6 +16,8 @@ type Post = {
   content_md: string;
   excerpt: string | null;
   cover_url: string | null;
+  category: string | null;
+  rating: number | null;
   created_at: string;
 };
 
@@ -22,7 +25,7 @@ if (!slug) return Astro.redirect("/posts");
 
 const { data: post, error } = await supabase
   .from("posts")
-  .select("id,title,slug,content_md,excerpt,cover_url,created_at")
+  .select("id,title,slug,content_md,excerpt,cover_url,category,rating,created_at")
   .eq("slug", slug)
   .eq("status", "published")
   .single();
@@ -30,13 +33,14 @@ const { data: post, error } = await supabase
 if (error || !post) return Astro.redirect("/posts");
 
 const p = post as Post;
+const cat = getCategory(p.category);
 
 function stripAdminHeader(md: string) {
   const lines = (md ?? "").split("\n");
   const filtered = lines.filter((line) => {
     const t = line.trim();
     if (!t) return true;
-    return !/^(Title:|Slug:|Tags:|Cover_url:)\s*/i.test(t);
+    return !/^(Title:|Slug:|Tags:|Cover_url:|Category:|Rating:)\s*/i.test(t);
   });
   return filtered.join("\n").trim();
 }
@@ -50,14 +54,47 @@ const fmt = (iso: string) =>
     month: "long",
     day: "2-digit",
   });
+
+function renderStars(rating: number | null) {
+  if (!rating) return null;
+  const filled = Math.round(Math.max(1, Math.min(5, rating)));
+  return Array.from({ length: 5 }, (_, i) => i < filled);
+}
+
+const stars = renderStars(p.rating);
 ---
 
-<BaseLayout title={`Atlas — ${p.title}`}>
+<BaseLayout
+  title={`Atlas — ${p.title}`}
+  description={p.excerpt ?? undefined}
+  ogImage={p.cover_url ?? undefined}
+>
   <main class="postPage">
-    <header class="postTop">
-      <a class="postBack" href="/posts">← All entries</a>
-      <p class="postDate">{fmt(p.created_at)}</p>
+    <header class="postHeader">
+      <a class="postBack" href="/posts">← All Reviews</a>
+
+      <div class="postMeta">
+        {cat && (
+          <span class="catBadge" data-cat={p.category}>
+            {cat.icon} {cat.label}
+          </span>
+        )}
+        <span class="postDate">{fmt(p.created_at)}</span>
+      </div>
+
       <h1 class="postTitle">{p.title}</h1>
+
+      {stars && (
+        <div class="postRating">
+          <div class="stars" aria-label={`Rated ${p.rating} out of 5`}>
+            {stars.map((on) => (
+              <span class={on ? "star on" : "star"}>★</span>
+            ))}
+          </div>
+          <span class="postRatingNum">{p.rating}/5</span>
+        </div>
+      )}
+
       {p.excerpt && <p class="postExcerpt">{p.excerpt}</p>}
     </header>
 
@@ -67,9 +104,9 @@ const fmt = (iso: string) =>
       </figure>
     )}
 
-    <article class="postContent prose" set:html={html} />
+    <article class="postContent" set:html={html} />
 
-    <section class="postComments">
+    <section class="postComments cWrap">
       <CommentsSection client:load postId={p.id} />
     </section>
   </main>
