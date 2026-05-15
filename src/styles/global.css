@@ -572,20 +572,65 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 17px;
 }
 .postContent p { margin: 0 0 20px; }
+.postContent h1 {
+  font-family: var(--font-serif);
+  margin: 48px 0 16px;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--fg);
+}
 .postContent h2 {
   font-family: var(--font-serif);
   margin: 38px 0 14px;
   font-size: 28px;
+  font-weight: 700;
   letter-spacing: -.01em;
+  line-height: 1.25;
+  color: var(--fg);
 }
 .postContent h3 {
   font-family: var(--font-serif);
   margin: 30px 0 10px;
   font-size: 22px;
+  font-weight: 700;
   letter-spacing: -.01em;
+  line-height: 1.3;
+  color: var(--fg);
 }
-.postContent :is(ul,ol) { padding-left: 1.3em; margin: 0 0 20px; }
-.postContent li { margin: 8px 0; }
+.postContent h4 {
+  margin: 24px 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.postContent :is(h1,h2,h3,h4) + p { margin-top: 0; }
+.postContent ul, .postContent ol {
+  padding-left: 1.4em;
+  margin: 0 0 20px;
+}
+.postContent ul { list-style: none; padding-left: 1.2em; }
+.postContent ul li {
+  position: relative;
+  margin: 8px 0;
+}
+.postContent ul li::before {
+  content: "–";
+  position: absolute;
+  left: -1.2em;
+  color: var(--gold);
+  font-weight: 600;
+}
+.postContent ol { list-style: decimal; }
+.postContent ol li {
+  margin: 8px 0;
+  padding-left: 0.2em;
+}
+.postContent ol li::marker { color: var(--gold); font-weight: 600; }
+.postContent li > ul, .postContent li > ol { margin: 6px 0 6px 0.5em; }
 .postContent a {
   color: var(--gold);
   text-decoration: none;
@@ -605,6 +650,20 @@ img { max-width: 100%; height: auto; display: block; }
   margin: 16px 0;
 }
 .postContent hr { border: 0; height: 1px; background: var(--line); margin: 34px 0; }
+.postContent strong { color: var(--fg); }
+.postContent em { color: rgba(255,255,255,.78); font-style: italic; }
+.postContent del { opacity: .45; text-decoration: line-through; }
+.postContent mark {
+  background: rgba(232,168,56,.22);
+  color: var(--gold);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.postContent .gold  { color: var(--gold); }
+.postContent .muted { color: var(--muted); }
+.postContent .red   { color: #e06c6c; }
+.postContent .green { color: #7ec87e; }
+.postContent .blue  { color: #7eaee0; }
 
 .postContent .gallery {
   columns: 2;
