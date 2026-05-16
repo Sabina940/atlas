@@ -210,17 +210,36 @@ export function AdminPosts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function uploadImageFile(file: File): Promise<string> {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.readAsDataURL(file);
+  async function compressImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Could not read image")); };
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX = 1800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      };
+      img.src = objectUrl;
     });
+  }
+
+  async function uploadImageFile(file: File): Promise<string> {
+    if (!file.type.startsWith("image/")) throw new Error(`"${file.name}" is not an image file.`);
+    const base64 = await compressImage(file);
     const res = await fetch("/.netlify/functions/admin-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
-      body: JSON.stringify({ slug: draft.slug || "uploads", filename: file.name, data: base64, mime: file.type }),
+      body: JSON.stringify({ slug: draft.slug || "uploads", filename: file.name, data: base64, mime: "image/jpeg" }),
     });
     if (!res.ok) throw new Error(await res.text());
     return (await res.json()).url as string;

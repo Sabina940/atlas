@@ -108,7 +108,7 @@ const stars = renderStars(p.rating);
     </header>
 
     {p.cover_url && (
-      <figure class="postCover">
+      <figure class="postCover" id="postCover">
         <img src={p.cover_url} alt="" />
       </figure>
     )}
@@ -119,4 +119,81 @@ const stars = renderStars(p.rating);
       <CommentsSection client:load postId={p.id} />
     </section>
   </main>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+    <button class="lbClose" id="lbClose" aria-label="Close">✕</button>
+    <button class="lbArrow lbPrev" id="lbPrev" aria-label="Previous">‹</button>
+    <button class="lbArrow lbNext" id="lbNext" aria-label="Next">›</button>
+    <img id="lbImg" src="" alt="" />
+    <div class="lbCounter" id="lbCounter"></div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var lb = document.getElementById('lightbox');
+      var lbImg = document.getElementById('lbImg');
+      var lbClose = document.getElementById('lbClose');
+      var lbPrev = document.getElementById('lbPrev');
+      var lbNext = document.getElementById('lbNext');
+      var lbCounter = document.getElementById('lbCounter');
+      var images = [];
+      var current = 0;
+
+      function show(srcs, idx) {
+        images = srcs;
+        current = idx;
+        lbImg.src = srcs[idx];
+        lb.classList.add('open');
+        lb.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        update();
+      }
+
+      function close() {
+        lb.classList.remove('open');
+        lb.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      function go(dir) {
+        current = Math.max(0, Math.min(images.length - 1, current + dir));
+        lbImg.src = images[current];
+        update();
+      }
+
+      function update() {
+        lbPrev.style.visibility = current === 0 ? 'hidden' : 'visible';
+        lbNext.style.visibility = current === images.length - 1 ? 'hidden' : 'visible';
+        lbCounter.textContent = images.length > 1 ? (current + 1) + ' / ' + images.length : '';
+      }
+
+      // Gallery images
+      var galleryImgs = document.querySelectorAll('.postContent .gallery img');
+      var galSrcs = Array.from(galleryImgs).map(function(i) { return i.src; });
+      galleryImgs.forEach(function(img, i) {
+        img.addEventListener('click', function() { show(galSrcs, i); });
+      });
+
+      // Cover image
+      var cover = document.getElementById('postCover');
+      if (cover) {
+        cover.addEventListener('click', function() {
+          show([cover.querySelector('img').src], 0);
+        });
+      }
+
+      lbClose.addEventListener('click', close);
+      lbPrev.addEventListener('click', function() { go(-1); });
+      lbNext.addEventListener('click', function() { go(1); });
+      lb.addEventListener('click', function(e) { if (e.target === lb) close(); });
+
+      document.addEventListener('keydown', function(e) {
+        if (!lb.classList.contains('open')) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') go(-1);
+        if (e.key === 'ArrowRight') go(1);
+      });
+    })();
+  </script>
 </BaseLayout>
